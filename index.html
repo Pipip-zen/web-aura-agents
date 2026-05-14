@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Aura Agent</title>
+    
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#00732c",
+                        "surface-container-high": "#dee8ff",
+                        "surface-tint": "#494bd6",
+                        "tertiary-container": "#727577",
+                        "surface-dim": "#cfdaf2",
+                        "primary": "#4648d4",
+                        "surface-bright": "#f9f9ff",
+                        "outline-variant": "#c7c4d7",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#07006c",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed-variant": "#00531e",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#c4c7c9",
+                        "tertiary": "#595c5e",
+                        "on-tertiary-container": "#fbfdff",
+                        "outline": "#767586",
+                        "surface-container-highest": "#d8e3fb",
+                        "surface-variant": "#d8e3fb",
+                        "on-secondary-fixed": "#002108",
+                        "on-primary-fixed-variant": "#2f2ebe",
+                        "secondary-container": "#5cfd80",
+                        "tertiary-fixed": "#e0e3e5",
+                        "primary-fixed-dim": "#c0c1ff",
+                        "on-surface": "#111c2d",
+                        "background": "#f9f9ff",
+                        "surface": "#f9f9ff",
+                        "surface-container": "#e7eeff",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-container": "#6063ee",
+                        "on-error-container": "#93000a",
+                        "on-primary-container": "#fffbff",
+                        "error-container": "#ffdad6",
+                        "on-background": "#111c2d",
+                        "secondary-fixed-dim": "#3ce36a",
+                        "on-tertiary-fixed-variant": "#444749",
+                        "inverse-on-surface": "#ecf1ff",
+                        "on-error": "#ffffff",
+                        "secondary": "#006e2a",
+                        "primary-fixed": "#e1e0ff",
+                        "surface-container-low": "#f0f3ff",
+                        "inverse-surface": "#263143",
+                        "secondary-fixed": "#69ff87",
+                        "on-tertiary-fixed": "#191c1e",
+                        "on-surface-variant": "#464554",
+                        "inverse-primary": "#c0c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "xs": "8px",
+                        "margin": "24px",
+                        "sm": "16px",
+                        "md": "24px",
+                        "xl": "48px",
+                        "gutter": "20px",
+                        "base": "4px",
+                        "lg": "32px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "label-caps": ["Inter"],
+                        "title-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "label-caps": ["12px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "title-sm": ["18px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "1.3", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid #E2E8F0;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+        /* Custom hide classes for logic */
+        .hidden-screen { display: none !important; }
+    </style>
+  </head>
+  <body class="bg-background font-body-md text-on-background min-h-screen flex flex-col items-center">
+    
+    <header id="top-bar" class="fixed top-0 z-50 w-full bg-[#121212]/80 backdrop-blur-xl border-b border-white/10 flex justify-between items-center px-6 py-4 shadow-[0_0_20px_rgba(99,102,241,0.15)]">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-indigo-400" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+        <h1 class="text-xl font-bold tracking-widest text-white uppercase font-['Space_Grotesk']">AURA AI</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="hidden md:flex gap-6 mr-6" id="desktop-nav">
+            <!-- Nav generated by JS -->
+        </div>
+        <img alt="User profile" class="w-10 h-10 rounded-full border-2 border-primary/20 object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV4J04-tFNlaT8U9VGQOXdYwH5a3TYGqk9UJSOJ0C3mwews96yWrYCfO3-TQtbVBOAnm4g-zmf6nDvb_eHSUckt3xDsHb7vEiEGTLB0qb_y0UJuZ859N-3lUpoP8mwzJ-7OEr82n9D_SXnqOrZ_z8rnXhacLJbzHaqu22CwVy4Bbedy3VP00fe5pZ9-I9elpjyC7WE66ezhAcJOzGZWuOrczAexZhnqBuw2sX1Yy5xGZ_vaRjl8KjkcZeeQi2kZ6_cIASH2hXmBnY"/>
+      </div>
+    </header>
+
+    <div id="app" class="w-full flex-1 flex flex-col items-center">
+      <main id="app-content" class="w-full max-w-[1200px] px-margin pt-[120px] pb-[120px] flex flex-col gap-lg overflow-y-auto">
+        <!-- Screens will be loaded here -->
+      </main>
+      
+      <nav id="bottom-nav" class="md:hidden fixed bottom-0 left-0 w-full bg-[#121212]/90 backdrop-blur-2xl flex justify-around items-center h-20 px-4 pb-2 z-50 rounded-t-lg border-t border-white/10 shadow-[0_-8px_32px_rgba(0,0,0,0.5)]">
+        <!-- Navigation will be generated by JS -->
+      </nav>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
