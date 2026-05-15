@@ -124,14 +124,15 @@ export function renderNotifications() {
           No ${activeTab} notifications yet.
         </div>
       `;
-
-    tabsContainer.querySelectorAll('.notification-tab').forEach((button) => {
-      button.addEventListener('click', () => {
-        activeTab = button.dataset.tab;
-        render();
-      });
-    });
   };
+
+  tabsContainer.addEventListener('click', (event) => {
+    const button = event.target.closest('.notification-tab');
+    if (!button || !tabsContainer.contains(button)) return;
+
+    activeTab = button.dataset.tab;
+    render();
+  });
 
   render();
   return container;

@@ -248,10 +248,10 @@ export function renderAiAnalysis() {
         setCurrentClaim(fullClaim);
         const remainingMs = Math.max(0, minVisibleMs - (Date.now() - startedAt));
         activeLog.textContent = statusPayload.status === 'approved'
-          ? 'Decision: auto-approve with refund recommendation ready.'
+          ? 'Decision: auto-approved with refund recommendation ready.'
           : statusPayload.status === 'review'
             ? 'Decision: manual review required. Preparing summary for reviewer.'
-            : 'Decision: reject. Preparing explanation payload.';
+            : 'Decision: rejected. Preparing explanation payload.';
         window.setTimeout(() => {
           navigate('decision');
         }, remainingMs);

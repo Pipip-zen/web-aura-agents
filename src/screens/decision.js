@@ -1,5 +1,15 @@
 import { navigate, resetDraftClaim, setCurrentClaim, setCurrentClaimStatus, state } from '../main.js';
 
+const decisionLabels = {
+  AUTO_APPROVE: 'AUTO APPROVED',
+  REJECT: 'REJECTED',
+  NEEDS_REVIEW: 'NEEDS REVIEW'
+};
+
+function formatDecisionLabel(decision) {
+  return decisionLabels[decision] || decision.replaceAll('_', ' ');
+}
+
 export function renderDecision() {
   const container = document.createElement('div');
   container.className = 'w-full max-w-md mx-auto md:max-w-4xl flex flex-col pb-8';
@@ -10,7 +20,7 @@ export function renderDecision() {
   const refundValue = Number(claim?.refund_value || 0);
   const damageType = claim?.damage_type || 'Unknown';
   const aiExplanation = claim?.ai_explanation || 'Backend analysis result is not available.';
-  const decisionLabel = decision.replaceAll('_', ' ');
+  const decisionLabel = formatDecisionLabel(decision);
   const claimTypeLabel = claim?.claim_type ? claim.claim_type.replaceAll('_', ' ') : 'Unknown';
   const submittedDescription = claim?.text_description || state.draftClaim?.textDescription || 'No written description was provided.';
   const evidenceSummary = claim?.file_ids?.[0] || state.draftClaim?.evidencePreviewName || 'Single evidence file attached';
