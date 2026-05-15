@@ -2,22 +2,22 @@ import { navigate } from '../main.js';
 
 export function renderHub() {
   const container = document.createElement('div');
-  container.className = 'w-full';
+  container.className = 'w-full pb-4 sm:pb-6';
   
   container.innerHTML = `
     <!-- Greeting Header -->
     <section class="flex flex-col gap-base">
     <p class="text-primary font-label-caps uppercase tracking-wider">Dashboard Overview</p>
-    <h2 class="font-display-lg text-display-lg text-on-background">Good morning, Alex</h2>
+    <h2 class="font-display-lg text-[clamp(2rem,8vw,3rem)] leading-tight text-on-background">Good morning, Alex</h2>
     </section>
     <!-- Bento Grid Layout -->
     <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mt-lg">
     <!-- Total Claims Value Card -->
     <div class="md:col-span-8 glass-card rounded-xl p-md flex flex-col justify-between min-h-[220px] shadow-[0px_4px_20px_rgba(0,0,0,0.05)]">
-    <div class="flex justify-between items-start">
+    <div class="flex flex-col items-start justify-between gap-4 sm:flex-row">
     <div>
     <p class="font-title-sm text-on-surface-variant mb-xs">Total Claims Value</p>
-    <h3 class="text-[48px] font-bold tracking-tight text-on-surface">$1,727</h3>
+    <h3 class="text-[clamp(2.25rem,10vw,3rem)] font-bold tracking-tight text-on-surface">$1,727</h3>
     </div>
     <div class="flex items-center gap-xs px-sm py-xs bg-secondary-container rounded-full">
     <span class="material-symbols-outlined text-on-secondary-container text-[18px]">trending_up</span>
@@ -50,7 +50,7 @@ export function renderHub() {
     </button>
     <!-- Recent Claims List (Full width below) -->
     <div class="md:col-span-12 flex flex-col gap-md mt-sm">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
     <h4 class="font-headline-md text-headline-md text-on-background">Recent Claims</h4>
     <button class="text-primary font-title-sm flex items-center gap-base hover:underline">
                             View All <span class="material-symbols-outlined text-[18px]">chevron_right</span>
@@ -58,8 +58,8 @@ export function renderHub() {
     </div>
     <div class="flex flex-col gap-sm">
     <!-- Claim Item 1 -->
-    <div class="glass-card p-md rounded-xl flex items-center justify-between group hover:border-primary/30 transition-colors">
-    <div class="flex items-center gap-md">
+    <div class="glass-card p-md rounded-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between group hover:border-primary/30 transition-colors">
+    <div class="flex items-start gap-md">
     <div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center text-primary">
     <span class="material-symbols-outlined">smartphone</span>
     </div>
@@ -71,14 +71,14 @@ export function renderHub() {
                                     </p>
     </div>
     </div>
-    <div class="text-right">
+    <div class="text-left sm:text-right">
     <p class="font-title-sm text-on-surface">$349.00</p>
     <p class="text-label-caps text-primary uppercase">Active</p>
     </div>
     </div>
     <!-- Claim Item 2 -->
-    <div class="glass-card p-md rounded-xl flex items-center justify-between group border-l-4 border-l-secondary">
-    <div class="flex items-center gap-md">
+    <div class="glass-card p-md rounded-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between group border-l-4 border-l-secondary">
+    <div class="flex items-start gap-md">
     <div class="w-12 h-12 rounded-lg bg-secondary-container/20 flex items-center justify-center text-secondary">
     <span class="material-symbols-outlined">headphones</span>
     </div>
@@ -90,14 +90,14 @@ export function renderHub() {
                                     </p>
     </div>
     </div>
-    <div class="text-right">
+    <div class="text-left sm:text-right">
     <p class="font-title-sm text-on-surface">$179.00</p>
     <p class="text-label-caps text-secondary uppercase tracking-tighter">Settled</p>
     </div>
     </div>
     <!-- Claim Item 3 -->
-    <div class="glass-card p-md rounded-xl flex items-center justify-between group border-l-4 border-l-error">
-    <div class="flex items-center gap-md">
+    <div class="glass-card p-md rounded-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between group border-l-4 border-l-error">
+    <div class="flex items-start gap-md">
     <div class="w-12 h-12 rounded-lg bg-error-container/20 flex items-center justify-center text-error">
     <span class="material-symbols-outlined">laptop_mac</span>
     </div>
@@ -109,7 +109,7 @@ export function renderHub() {
                                     </p>
     </div>
     </div>
-    <div class="text-right">
+    <div class="text-left sm:text-right">
     <p class="font-title-sm text-on-surface">$1,199.00</p>
     <p class="text-label-caps text-error uppercase">Closed</p>
     </div>
@@ -127,7 +127,7 @@ export function renderHub() {
                             Based on your current device inventory, adding <span class="font-semibold text-on-surface">Loss Protection</span> would only increase your premium by $2.40/mo. Would you like to see the coverage?
                         </p>
     </div>
-    <button class="px-lg py-sm bg-primary text-white rounded-full font-title-sm hover:bg-primary/90 transition-colors shrink-0">
+    <button class="w-full sm:w-auto px-lg py-sm bg-primary text-white rounded-full font-title-sm hover:bg-primary/90 transition-colors shrink-0">
                         Explore
                     </button>
     </div>

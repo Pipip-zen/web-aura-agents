@@ -2,12 +2,12 @@ import { navigate } from '../main.js';
 
 export function renderDecision() {
   const container = document.createElement('div');
-  container.className = 'w-full max-w-md mx-auto md:max-w-4xl flex flex-col pb-32';
+  container.className = 'w-full max-w-md mx-auto md:max-w-4xl flex flex-col pb-8';
   
   container.innerHTML = `
     <!-- Progress Indicator -->
     <div class="flex flex-col gap-base w-full max-w-md mx-auto md:max-w-full">
-    <div class="flex justify-between items-center w-full">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between w-full">
     <span class="font-label-caps text-label-caps text-on-surface-variant tracking-wider">Step 3 of 3</span>
     <span class="font-label-caps text-label-caps text-primary tracking-wider">Final Decision</span>
     </div>
@@ -18,13 +18,13 @@ export function renderDecision() {
     </div>
     </div>
     <!-- Central Confidence Score Ring & Decision Badge -->
-    <div class="relative flex flex-col items-center justify-center p-xl bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm mx-auto w-full max-w-lg mt-8">
+    <div class="relative flex flex-col items-center justify-center p-6 sm:p-xl bg-surface border border-outline-variant rounded-xl overflow-hidden shadow-sm mx-auto w-full max-w-lg mt-8">
     <!-- Luminous Glow Level 2 -->
     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
     <div class="w-[250px] h-[250px] bg-[#00C853]/5 blur-[50px] rounded-full"></div>
     </div>
     <!-- Segmented Ring System -->
-    <div class="relative w-56 h-56 flex items-center justify-center mb-md">
+    <div class="relative h-48 w-48 sm:h-56 sm:w-56 flex items-center justify-center mb-md">
     <!-- Background track -->
     <svg class="absolute inset-0 w-full h-full -rotate-90" viewbox="0 0 100 100">
     <circle class="text-outline-variant" cx="50" cy="50" fill="none" r="46" stroke="currentColor" stroke-dasharray="2 4" stroke-width="1.5"></circle>
@@ -39,7 +39,7 @@ export function renderDecision() {
     </div>
     </div>
     <!-- Decision Badge -->
-    <div class="flex items-center gap-sm px-6 py-3 rounded-full border border-[#00C853]/40 bg-[#00C853]/10 shadow-[0_0_24px_rgba(0,200,83,0.1)] z-10 opacity-0 transition-opacity duration-1000" id="decision-badge">
+    <div class="flex flex-wrap items-center justify-center gap-sm px-6 py-3 rounded-full border border-[#00C853]/40 bg-[#00C853]/10 shadow-[0_0_24px_rgba(0,200,83,0.1)] z-10 opacity-0 transition-opacity duration-1000" id="decision-badge">
     <span class="material-symbols-outlined text-[#00C853] text-lg" style="font-variation-settings: 'FILL' 1;">verified</span>
     <span class="font-title-sm text-title-sm !text-[20px] text-[#00C853] tracking-widest font-bold uppercase">APPROVED</span>
     </div>

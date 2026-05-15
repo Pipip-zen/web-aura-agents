@@ -21,6 +21,7 @@ export const routes = {
 
 function initApp() {
   setupNavigation();
+  setupDragScroll();
   navigate(state.currentRoute);
 }
 
@@ -60,6 +61,62 @@ function setupNavigation() {
   });
 }
 
+function setupDragScroll() {
+  const appContent = document.getElementById('app-content');
+  const interactiveSelector = 'button, a, input, select, textarea, label, [role="button"]';
+  let isDragging = false;
+  let startY = 0;
+  let startScrollY = 0;
+  let moved = false;
+
+  appContent.addEventListener('mousedown', (event) => {
+    if (event.button !== 0) return;
+    if (event.target.closest(interactiveSelector)) return;
+
+    isDragging = true;
+    moved = false;
+    startY = event.clientY;
+    startScrollY = window.scrollY;
+    appContent.classList.add('is-dragging');
+  });
+
+  window.addEventListener('mousemove', (event) => {
+    if (!isDragging) return;
+
+    const deltaY = event.clientY - startY;
+    if (Math.abs(deltaY) > 3) {
+      moved = true;
+    }
+
+    if (moved) {
+      event.preventDefault();
+      window.scrollTo({ top: startScrollY - deltaY, behavior: 'auto' });
+    }
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    appContent.classList.remove('is-dragging');
+  });
+
+  appContent.addEventListener('dragstart', (event) => {
+    if (!event.target.closest(interactiveSelector)) {
+      event.preventDefault();
+    }
+  });
+}
+
+function updateLayoutForRoute(route) {
+  const navContainer = document.getElementById('bottom-nav');
+  const appContent = document.getElementById('app-content');
+  const showNav = routes[route].showNav;
+
+  navContainer.classList.toggle('is-hidden', !showNav);
+  navContainer.setAttribute('aria-hidden', String(!showNav));
+  appContent.classList.toggle('nav-hidden', !showNav);
+}
+
 export function navigate(route) {
   if (!routes[route]) return;
   
@@ -92,16 +149,12 @@ export function navigate(route) {
   }
 
   // Hide nav bar if route dictates
-  const navContainer = document.getElementById('bottom-nav');
-  if (routes[route].showNav) {
-    navContainer.style.display = 'flex';
-  } else {
-    navContainer.style.display = 'none';
-  }
+  updateLayoutForRoute(route);
   
   // Update content
   const appContent = document.getElementById('app-content');
-  appContent.innerHTML = ''; // Clear current content
+  appContent.innerHTML = '';
+  window.scrollTo({ top: 0, behavior: 'auto' });
   
   // Render new content
   const screenContent = routes[route].render();

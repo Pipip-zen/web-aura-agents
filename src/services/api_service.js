@@ -1,4 +1,7 @@
-const API_BASE_URL = 'http://localhost:8000/api/v1'; // Default
+const runtimeApiBaseUrl = window.__AURA_CONFIG__?.apiBaseUrl;
+const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+const fallbackApiBaseUrl = `${window.location.origin}/api/v1`;
+const API_BASE_URL = (runtimeApiBaseUrl || envApiBaseUrl || fallbackApiBaseUrl).replace(/\/$/, '');
 
 export async function fetchClaims() {
   try {

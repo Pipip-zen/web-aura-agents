@@ -2,12 +2,12 @@ import { navigate } from '../main.js';
 
 export function renderAiAnalysis() {
   const container = document.createElement('div');
-  container.className = 'w-full max-w-md mx-auto flex flex-col pb-10';
+  container.className = 'w-full max-w-md mx-auto flex flex-col pb-6';
   
   container.innerHTML = `
     <!-- Progress Header -->
     <div class="flex flex-col gap-sm mt-sm">
-    <div class="flex justify-between items-end mb-1">
+    <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between mb-1">
     <h2 class="font-headline-md text-headline-md text-on-background m-0">AI Analysis</h2>
     <span class="font-label-caps text-label-caps text-primary uppercase tracking-widest">Step 2 of 3</span>
     </div>
@@ -32,7 +32,7 @@ export function renderAiAnalysis() {
     <!-- Vertical Checklist (Level 2 Depth) -->
     <div class="bg-surface-container rounded-xl p-md flex flex-col gap-md border border-outline-variant/30 mt-8">
     <!-- Complete Step -->
-    <div class="flex items-center gap-md">
+    <div class="flex items-start gap-md sm:items-center">
     <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
     <span class="font-body-md text-body-md text-on-surface">Uploading Evidence</span>
@@ -40,7 +40,7 @@ export function renderAiAnalysis() {
     </div>
     </div>
     <!-- Active Step -->
-    <div class="flex items-center gap-md relative" id="step-2">
+    <div class="flex items-start gap-md relative sm:items-center" id="step-2">
     <!-- Outer Bloom -->
     <div class="absolute -left-2 -right-2 top-1 bottom-1 bg-primary/5 rounded-lg blur-md"></div>
     <span class="material-symbols-outlined text-primary relative z-10 animate-spin">sync</span>
@@ -50,7 +50,7 @@ export function renderAiAnalysis() {
     </div>
     </div>
     <!-- Pending Step 1 -->
-    <div class="flex items-center gap-md opacity-60 transition-opacity" id="step-3">
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-3">
     <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
     <span class="font-body-md text-body-md text-on-surface-variant">Detecting Damage Patterns</span>
@@ -58,7 +58,7 @@ export function renderAiAnalysis() {
     </div>
     </div>
     <!-- Pending Step 2 -->
-    <div class="flex items-center gap-md opacity-60 transition-opacity" id="step-4">
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-4">
     <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
     <span class="font-body-md text-body-md text-on-surface-variant">Calculating Confidence Score</span>
@@ -66,7 +66,7 @@ export function renderAiAnalysis() {
     </div>
     </div>
     <!-- Pending Step 3 -->
-    <div class="flex items-center gap-md opacity-60 transition-opacity" id="step-5">
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-5">
     <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center">
     <span class="font-body-md text-body-md text-on-surface-variant">Generating Report</span>

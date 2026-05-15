@@ -1,6 +1,6 @@
 export function renderNotifications() {
   const container = document.createElement('div');
-  container.className = 'w-full pb-10';
+  container.className = 'w-full pb-6';
   
   container.innerHTML = `
     <!-- Page Title -->
@@ -9,7 +9,7 @@ export function renderNotifications() {
     <p class="font-body-md text-on-surface-variant mt-xs">Stay updated with your claim status and AI insights.</p>
     </section>
     <!-- Segmented Control (Tabs) -->
-    <nav class="flex p-1 bg-surface-container rounded-full mb-lg max-w-md mx-auto md:mx-0">
+    <nav class="flex flex-wrap gap-2 p-1 bg-surface-container rounded-[1.25rem] mb-lg max-w-md mx-auto md:mx-0">
     <button class="flex-1 py-2 px-4 rounded-full bg-primary-container text-on-primary-container font-title-sm text-center shadow-md">All</button>
     <button class="flex-1 py-2 px-4 rounded-full text-on-surface-variant font-title-sm text-center hover:bg-surface-container-high transition-colors">Approved</button>
     <button class="flex-1 py-2 px-4 rounded-full text-on-surface-variant font-title-sm text-center hover:bg-surface-container-high transition-colors">Processing</button>
@@ -22,8 +22,8 @@ export function renderNotifications() {
     <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center shrink-0">
     <span class="material-symbols-outlined text-on-secondary-container" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
     </div>
-    <div class="flex-1">
-    <div class="flex justify-between items-center mb-base">
+    <div class="min-w-0 flex-1">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-base">
     <h3 class="font-title-sm text-on-surface">Claim Approved!</h3>
     <span class="font-label-caps text-on-surface-variant">2m ago</span>
     </div>
@@ -37,8 +37,8 @@ export function renderNotifications() {
     <div class="w-12 h-12 rounded-full bg-primary-fixed flex items-center justify-center shrink-0">
     <span class="material-symbols-outlined text-primary" data-icon="notifications">notifications</span>
     </div>
-    <div class="flex-1">
-    <div class="flex justify-between items-center mb-base">
+    <div class="min-w-0 flex-1">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-base">
     <h3 class="font-title-sm text-on-surface">AI Analysis Complete</h3>
     <span class="font-label-caps text-on-surface-variant">1h ago</span>
     </div>
@@ -51,8 +51,8 @@ export function renderNotifications() {
     <div class="w-12 h-12 rounded-full bg-tertiary-fixed flex items-center justify-center shrink-0">
     <span class="material-symbols-outlined text-tertiary" data-icon="schedule">schedule</span>
     </div>
-    <div class="flex-1">
-    <div class="flex justify-between items-center mb-base">
+    <div class="min-w-0 flex-1">
+    <div class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between mb-base">
     <h3 class="font-title-sm text-on-surface">Claim Processing</h3>
     <span class="font-label-caps text-on-surface-variant">5h ago</span>
     </div>
@@ -60,7 +60,7 @@ export function renderNotifications() {
     </div>
     </div>
     <!-- AI Insight Feature Card -->
-    <div class="p-md rounded-xl bg-gradient-to-br from-primary-container to-indigo-700 text-white shadow-xl flex items-center justify-between mt-md">
+    <div class="p-md rounded-xl bg-gradient-to-br from-primary-container to-indigo-700 text-white shadow-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-md">
     <div class="flex-1">
     <div class="flex items-center gap-2 mb-xs">
     <span class="material-symbols-outlined text-white" data-icon="auto_awesome">auto_awesome</span>
