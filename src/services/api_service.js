@@ -1,3 +1,5 @@
+import { getAuthToken } from './auth_service.js';
+
 const runtimeApiBaseUrl = window.__AURA_CONFIG__?.apiBaseUrl;
 const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
@@ -21,11 +23,23 @@ function getFallbackApiBaseUrl() {
 
 const API_BASE_URL = (runtimeApiBaseUrl || envApiBaseUrl || getFallbackApiBaseUrl()).replace(/\/$/, '');
 
+async function buildHeaders(headers = {}) {
+  const token = await getAuthToken();
+  return {
+    ...headers,
+    Authorization: `Bearer ${token}`
+  };
+}
+
 async function request(path, options = {}) {
   let response;
+  const headers = await buildHeaders(options.headers);
 
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, options);
+    response = await fetch(`${API_BASE_URL}${path}`, {
+      ...options,
+      headers
+    });
   } catch {
     throw new Error(`Cannot reach backend at ${API_BASE_URL}. Check runtime-config.js or VITE_API_BASE_URL.`);
   }

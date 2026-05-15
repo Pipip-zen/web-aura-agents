@@ -4,10 +4,11 @@ import { renderEvidence } from './screens/evidence.js';
 import { renderAiAnalysis } from './screens/ai_analysis.js';
 import { renderDecision } from './screens/decision.js';
 import { renderNotifications } from './screens/notifications.js';
+import { renderAuthScreen } from './screens/auth.js';
+import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   clearDraftClaimPersistence,
   DEFAULT_DRAFT_CLAIM,
-  DEMO_USER_ID,
   loadDraftClaim,
   persistDraftClaim
 } from './config/demo.js';
@@ -15,7 +16,10 @@ import {
 // App State
 export const state = {
   currentRoute: 'hub',
-  currentUserId: DEMO_USER_ID,
+  currentUser: null,
+  currentUserId: null,
+  authReady: false,
+  authError: null,
   currentClaim: null,
   currentClaimStatus: null,
   draftClaim: loadDraftClaim()
@@ -32,9 +36,25 @@ export const routes = {
 
 function initApp() {
   setupNavigation();
+  setupAccountMenu();
   setupDragScroll();
   registerServiceWorker();
-  navigate(state.currentRoute);
+  renderAuthLoading();
+  subscribeToAuthState((user, error) => {
+    state.authReady = true;
+    state.authError = error;
+    state.currentUser = user;
+    state.currentUserId = user?.uid || null;
+
+    if (!user) {
+      state.currentClaim = null;
+      state.currentClaimStatus = null;
+    }
+
+    setupNavigation();
+    updateAccountUi();
+    navigate(user ? state.currentRoute : 'auth');
+  });
 }
 
 function setupNavigation() {
@@ -70,6 +90,30 @@ function setupNavigation() {
       navigate(route);
     });
     desktopContainer.appendChild(dItem);
+  });
+}
+
+function setupAccountMenu() {
+  const accountButton = document.getElementById('account-button');
+  const accountLabel = document.getElementById('account-label');
+  if (!accountButton) return;
+
+  accountButton.addEventListener('click', async () => {
+    if (!state.currentUser) return;
+
+    accountButton.disabled = true;
+    if (accountLabel) accountLabel.textContent = 'Signing out...';
+
+    try {
+      await logout();
+      state.currentRoute = 'hub';
+      resetDraftClaim();
+    } catch (error) {
+      if (accountLabel) accountLabel.textContent = error.message || 'Logout failed';
+    } finally {
+      accountButton.disabled = false;
+      updateAccountUi();
+    }
   });
 }
 
@@ -121,12 +165,43 @@ function setupDragScroll() {
 
 function updateLayoutForRoute(route) {
   const navContainer = document.getElementById('bottom-nav');
+  const desktopContainer = document.getElementById('desktop-nav');
   const appContent = document.getElementById('app-content');
-  const showNav = routes[route].showNav;
+  const showNav = Boolean(state.currentUser && routes[route]?.showNav);
 
   navContainer.classList.toggle('is-hidden', !showNav);
   navContainer.setAttribute('aria-hidden', String(!showNav));
+  desktopContainer.classList.toggle('hidden', !showNav);
+  desktopContainer.classList.toggle('md:flex', showNav);
+  desktopContainer.setAttribute('aria-hidden', String(!showNav));
   appContent.classList.toggle('nav-hidden', !showNav);
+}
+
+function renderAuthLoading() {
+  const appContent = document.getElementById('app-content');
+  appContent.innerHTML = `
+    <div class="flex min-h-[calc(100dvh-120px)] items-center justify-center text-body-md text-on-surface-variant">
+      Checking secure session...
+    </div>
+  `;
+  updateLayoutForRoute('auth');
+  updateAccountUi();
+}
+
+function updateAccountUi() {
+  const accountButton = document.getElementById('account-button');
+  const accountLabel = document.getElementById('account-label');
+  const accountAvatar = document.getElementById('account-avatar');
+  if (!accountButton || !accountLabel || !accountAvatar) return;
+
+  const user = state.currentUser;
+  accountButton.classList.toggle('cursor-pointer', Boolean(user));
+  accountButton.disabled = !user;
+  accountButton.title = user ? 'Logout' : 'Login required';
+  accountLabel.textContent = user?.email || 'Guest';
+
+  const initial = (user?.email || 'A').trim().charAt(0).toUpperCase();
+  accountAvatar.textContent = initial;
 }
 
 export function updateDraftClaim(patch) {
@@ -161,6 +236,25 @@ function registerServiceWorker() {
 }
 
 export function navigate(route) {
+  if (route === 'auth') {
+    updateLayoutForRoute(route);
+    const appContent = document.getElementById('app-content');
+    appContent.innerHTML = '';
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    appContent.appendChild(renderAuthScreen({ configError: state.authError }));
+    return;
+  }
+
+  if (!state.authReady) {
+    renderAuthLoading();
+    return;
+  }
+
+  if (!state.currentUser) {
+    navigate('auth');
+    return;
+  }
+
   if (!routes[route]) return;
   
   state.currentRoute = route;
