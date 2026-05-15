@@ -135,3 +135,19 @@ export async function fetchSellerClaims() {
   const response = await request(`/seller/claims?role=seller`);
   return Array.isArray(response.data) ? response.data : [];
 }
+
+export async function getSellerClaimDetail(claimId) {
+  const response = await request(`/seller/claims/${claimId}?role=seller`);
+  return response.data;
+}
+
+export async function submitSellerDecision(claimId, decision, sellerNote = '') {
+  const response = await request(`/seller/claims/${claimId}/decision?role=seller`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ decision, seller_note: sellerNote })
+  });
+  return response.data;
+}

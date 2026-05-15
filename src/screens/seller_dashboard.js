@@ -1,3 +1,4 @@
+import { navigate } from '../main.js';
 import { fetchSellerClaims } from '../services/api_service.js';
 
 export function renderSellerDashboard() {
@@ -41,7 +42,12 @@ export function renderSellerDashboard() {
       
       claims.forEach(claim => {
         const card = document.createElement('div');
-        card.className = 'flex flex-col gap-3 rounded-2xl border border-outline-variant/50 bg-white p-5 shadow-sm transition-shadow hover:shadow-md';
+        card.className = 'flex flex-col gap-3 rounded-2xl border border-outline-variant/50 bg-white p-5 shadow-sm transition-all hover:shadow-md hover:border-primary/50 cursor-pointer group';
+        
+        // Click listener
+        card.addEventListener('click', () => {
+          navigate('seller_claim_detail', claim.claim_id);
+        });
         
         // Status formatting
         let statusColor = 'bg-surface-variant text-on-surface-variant';
@@ -67,7 +73,7 @@ export function renderSellerDashboard() {
         card.innerHTML = `
           <div class="flex justify-between items-start">
             <div class="flex flex-col">
-              <span class="text-label-sm uppercase tracking-wider text-on-surface-variant mb-1">Claim ID: ${claim.claim_id.substring(0, 8)}...</span>
+              <span class="text-label-sm uppercase tracking-wider text-on-surface-variant mb-1 group-hover:text-primary transition-colors">Claim ID: ${claim.claim_id.substring(0, 8)}...</span>
               <h3 class="font-title-md text-on-surface">${claim.damage_type || 'Product Claim'}</h3>
             </div>
             <span class="px-2.5 py-1 rounded-full text-label-sm font-medium ${statusColor}">${statusText}</span>

@@ -7,6 +7,7 @@ import { renderNotifications } from './screens/notifications.js';
 import { renderAuthScreen } from './screens/auth.js';
 import { renderOnboarding } from './screens/onboarding.js';
 import { renderSellerDashboard } from './screens/seller_dashboard.js';
+import { renderSellerClaimDetail } from './screens/seller_claim_detail.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   clearDraftClaimPersistence,
@@ -36,7 +37,8 @@ export const routes = {
   'notifications': { label: 'Notifications', icon: 'notifications', render: renderNotifications, showNav: true },
   'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false },
   'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false },
-  'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false }
+  'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false },
+  'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false }
 };
 
 function initApp() {
@@ -301,7 +303,7 @@ function registerServiceWorker() {
   });
 }
 
-export function navigate(route) {
+export function navigate(route, params = null) {
   if (route === 'auth') {
     updateLayoutForRoute(route);
     const appContent = document.getElementById('app-content');
@@ -360,7 +362,7 @@ export function navigate(route) {
   window.scrollTo({ top: 0, behavior: 'auto' });
   
   // Render new content
-  const screenContent = routes[route].render();
+  const screenContent = routes[route].render(params);
   appContent.appendChild(screenContent);
 }
 
