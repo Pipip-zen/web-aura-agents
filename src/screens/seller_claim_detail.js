@@ -43,8 +43,9 @@ export function renderSellerClaimDetail(claimId) {
       else if (status === 'complete' || status === 'approved') { statusColor = 'bg-secondary/10 text-secondary'; statusText = status === 'approved' ? 'Approved' : 'Complete'; }
       else if (status === 'rejected') { statusColor = 'bg-error/10 text-error'; statusText = 'Rejected'; }
 
-      const isReviewable = status === 'under_review' || status === 'pending' || status === 'processing';
       const hasDecision = !!seller_decision;
+      // Any claim without a seller decision is open for review — regardless of status
+      const isReviewable = !hasDecision;
 
       content.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -125,10 +126,10 @@ export function renderSellerClaimDetail(claimId) {
               <h3 class="font-title-md text-on-surface mb-4">Your Decision</h3>
               
               ${hasDecision ? `
-                <div class="flex items-center p-4 rounded-xl border ${seller_decision.decision === 'approve' ? 'bg-secondary/10 border-secondary/30 text-secondary' : 'bg-error/10 border-error/30 text-error'}">
-                  <span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 1;">${seller_decision.decision === 'approve' ? 'check_circle' : 'cancel'}</span>
+                <div class="flex items-center p-4 rounded-xl border ${seller_decision.decision === 'approved' ? 'bg-secondary/10 border-secondary/30 text-secondary' : 'bg-error/10 border-error/30 text-error'}">
+                  <span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 1;">${seller_decision.decision === 'approved' ? 'check_circle' : 'cancel'}</span>
                   <div>
-                    <p class="font-title-sm capitalize">You ${seller_decision.decision}d this claim.</p>
+                    <p class="font-title-sm capitalize">You ${seller_decision.decision === 'approved' ? 'Approved' : 'Rejected'} this claim.</p>
                     ${seller_decision.seller_note ? `<p class="text-body-sm mt-1 opacity-80">Note: ${seller_decision.seller_note}</p>` : ''}
                   </div>
                 </div>
@@ -138,10 +139,10 @@ export function renderSellerClaimDetail(claimId) {
                     <textarea id="seller-note" class="w-full rounded-xl border border-outline-variant/60 bg-surface p-3 text-body-sm text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20 resize-none h-24" placeholder="Optional: Add a note to the buyer explaining your decision..."></textarea>
                     
                     <div class="flex gap-3 mt-2">
-                      <button id="btn-reject" class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-error text-error px-4 py-3 font-title-sm hover:bg-error/10 transition">
+                      <button id="btn-reject" data-decision="rejected" class="flex-1 flex items-center justify-center gap-2 rounded-xl border border-error text-error px-4 py-3 font-title-sm hover:bg-error/10 transition">
                         <span class="material-symbols-outlined text-[18px]">close</span> Reject
                       </button>
-                      <button id="btn-approve" class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-secondary text-white px-4 py-3 font-title-sm shadow-lg shadow-secondary/25 hover:bg-secondary/90 transition">
+                      <button id="btn-approve" data-decision="approved" class="flex-1 flex items-center justify-center gap-2 rounded-xl bg-secondary text-white px-4 py-3 font-title-sm shadow-lg shadow-secondary/25 hover:bg-secondary/90 transition">
                         <span class="material-symbols-outlined text-[18px]">check</span> Approve
                       </button>
                     </div>
@@ -165,8 +166,8 @@ export function renderSellerClaimDetail(claimId) {
         const handleDecision = async (decision) => {
           btnApprove.disabled = true;
           btnReject.disabled = true;
-          const originalText = decision === 'approve' ? btnApprove.innerHTML : btnReject.innerHTML;
-          const btn = decision === 'approve' ? btnApprove : btnReject;
+          const originalText = decision === 'approved' ? btnApprove.innerHTML : btnReject.innerHTML;
+          const btn = decision === 'approved' ? btnApprove : btnReject;
           
           btn.innerHTML = `<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Processing...`;
           
@@ -184,8 +185,8 @@ export function renderSellerClaimDetail(claimId) {
           }
         };
 
-        btnApprove.addEventListener('click', () => handleDecision('approve'));
-        btnReject.addEventListener('click', () => handleDecision('reject'));
+        btnApprove.addEventListener('click', () => handleDecision('approved'));
+        btnReject.addEventListener('click', () => handleDecision('rejected'));
       }
       
     } catch (error) {

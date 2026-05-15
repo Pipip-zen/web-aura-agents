@@ -60,11 +60,14 @@ export function renderSellerDashboard() {
           statusColor = 'bg-tertiary/10 text-tertiary';
           statusText = 'Analyzing AI';
         } else if (claim.status === 'under_review') {
-          statusColor = 'bg-[#FFD700]/20 text-[#B8860B]'; // Yellowish
+          statusColor = 'bg-[#FFD700]/20 text-[#B8860B]';
           statusText = 'Needs Review';
-        } else if (claim.status === 'complete' || claim.status === 'approved') {
+        } else if (claim.status === 'complete') {
+          statusColor = 'bg-[#FFD700]/20 text-[#B8860B]';
+          statusText = 'Awaiting Decision';
+        } else if (claim.status === 'refund_approved' || claim.status === 'approved') {
           statusColor = 'bg-secondary/10 text-secondary';
-          statusText = claim.status === 'approved' ? 'Approved' : 'Complete';
+          statusText = 'Approved ✓';
         } else if (claim.status === 'rejected') {
           statusColor = 'bg-error/10 text-error';
           statusText = 'Rejected';

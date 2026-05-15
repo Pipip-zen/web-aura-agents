@@ -48,7 +48,12 @@ async function request(path, options = {}) {
   const payload = contentType.includes('application/json') ? await response.json() : null;
 
   if (!response.ok) {
-    const message = payload?.detail || payload?.message || 'Request failed';
+    const rawDetail = payload?.detail;
+    const message = typeof rawDetail === 'string'
+      ? rawDetail
+      : Array.isArray(rawDetail)
+        ? rawDetail.map(e => e.msg || JSON.stringify(e)).join(', ')
+        : payload?.message || `Request failed (${response.status})`;
     throw new Error(message);
   }
 
