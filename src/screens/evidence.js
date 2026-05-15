@@ -125,12 +125,13 @@ export function renderEvidence() {
         <h2 class="font-title-sm text-title-sm text-on-surface-variant">Voice Context (Optional)</h2>
         <span class="material-symbols-outlined text-on-surface-variant text-sm" data-icon="info">info</span>
       </div>
-      <textarea id="voice-description" class="min-h-[96px] w-full resize-none rounded-xl border border-outline-variant/50 bg-surface-container px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Optional: paste transcript or short voice note summary if available.">${draft.voiceDescription}</textarea>
-      <div class="bg-surface-container border border-outline-variant/50 rounded-xl p-4 flex items-center gap-4 relative overflow-hidden shadow-sm">
-        <button class="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm flex-shrink-0 hover:bg-primary/20 transition-colors" type="button" disabled>
-          <span class="material-symbols-outlined" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
+      <textarea id="voice-description" class="min-h-[96px] w-full resize-none rounded-xl border border-outline-variant/50 bg-surface-container px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Optional: record a voice note or paste a short transcript.">${draft.voiceDescription}</textarea>
+      <div class="bg-surface-container border border-outline-variant/50 rounded-xl p-4 flex flex-col gap-3 relative overflow-hidden shadow-sm">
+        <div class="flex items-center gap-4">
+        <button id="voice-record-btn" class="w-12 h-12 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-primary shadow-sm flex-shrink-0 hover:bg-primary/20 transition-colors" type="button" aria-label="Start voice recording">
+          <span id="voice-record-icon" class="material-symbols-outlined" data-icon="mic" data-weight="fill" style="font-variation-settings: 'FILL' 1;">mic</span>
         </button>
-        <div class="flex-1 h-8 flex items-center gap-1 opacity-60 overflow-hidden">
+        <div id="voice-waveform" class="flex-1 h-8 flex items-center gap-1 opacity-60 overflow-hidden">
           <div class="w-1 h-3 bg-primary rounded-full"></div>
           <div class="w-1 h-6 bg-primary rounded-full"></div>
           <div class="w-1 h-4 bg-primary rounded-full"></div>
@@ -149,7 +150,15 @@ export function renderEvidence() {
           <div class="w-1 h-2 bg-primary rounded-full"></div>
           <div class="w-1 h-4 bg-primary rounded-full"></div>
         </div>
-        <span class="font-label-caps text-label-caps text-on-surface-variant flex-shrink-0">00:00</span>
+        <span id="voice-timer" class="font-label-caps text-label-caps text-on-surface-variant flex-shrink-0">00:00</span>
+        </div>
+        <audio id="voice-playback" class="hidden w-full" controls></audio>
+        <div class="flex items-start justify-between gap-3">
+          <p id="voice-status" class="text-body-sm text-on-surface-variant">Tap the mic to record voice context.</p>
+          <button id="remove-voice-btn" type="button" class="hidden shrink-0 rounded-full border border-outline-variant px-3 py-1.5 text-body-sm text-on-surface-variant hover:bg-surface">
+            Remove
+          </button>
+        </div>
       </div>
     </div>
 
@@ -180,6 +189,25 @@ export function renderEvidence() {
   const submitState = container.querySelector('#submit-state');
   const analyzeBtn = container.querySelector('#evidence-analyze-btn');
   const analyzeBtnLabel = container.querySelector('#analyze-btn-label');
+  const voiceRecordButton = container.querySelector('#voice-record-btn');
+  const voiceRecordIcon = container.querySelector('#voice-record-icon');
+  const voiceWaveform = container.querySelector('#voice-waveform');
+  const voiceTimer = container.querySelector('#voice-timer');
+  const voicePlayback = container.querySelector('#voice-playback');
+  const voiceStatus = container.querySelector('#voice-status');
+  const removeVoiceButton = container.querySelector('#remove-voice-btn');
+
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  let mediaRecorder = null;
+  let voiceChunks = [];
+  let voiceStream = null;
+  let voiceUrl = '';
+  let voiceTimerId = null;
+  let voiceStartedAt = 0;
+  let speechRecognition = null;
+  let isRecordingVoice = false;
+  let transcriptBase = '';
+  let finalTranscript = '';
 
   const refreshFileUi = () => {
     const { evidencePreviewName, evidenceNeedsReselection } = state.draftClaim;
@@ -202,6 +230,188 @@ export function renderEvidence() {
     analyzeBtnLabel.textContent = submitLabels[mode] || submitLabels.idle;
     submitState.textContent = helperText;
     submitState.classList.toggle('hidden', !helperText);
+  };
+
+  const formatDuration = (milliseconds) => {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+    const seconds = String(totalSeconds % 60).padStart(2, '0');
+    return `${minutes}:${seconds}`;
+  };
+
+  const setVoiceStatus = (message, isError = false) => {
+    voiceStatus.textContent = message;
+    voiceStatus.classList.toggle('text-error', isError);
+    voiceStatus.classList.toggle('text-on-surface-variant', !isError);
+  };
+
+  const updateVoiceTimer = () => {
+    voiceTimer.textContent = formatDuration(Date.now() - voiceStartedAt);
+  };
+
+  const startVoiceTimer = () => {
+    voiceStartedAt = Date.now();
+    updateVoiceTimer();
+    voiceTimerId = window.setInterval(updateVoiceTimer, 500);
+  };
+
+  const stopVoiceTimer = () => {
+    if (voiceTimerId) {
+      window.clearInterval(voiceTimerId);
+      voiceTimerId = null;
+    }
+  };
+
+  const setVoiceRecordingUi = (recording) => {
+    voiceRecordButton.classList.toggle('bg-error-container', recording);
+    voiceRecordButton.classList.toggle('border-error/30', recording);
+    voiceRecordButton.classList.toggle('text-error', recording);
+    voiceRecordButton.classList.toggle('bg-primary/10', !recording);
+    voiceRecordButton.classList.toggle('border-primary/20', !recording);
+    voiceRecordButton.classList.toggle('text-primary', !recording);
+    voiceRecordIcon.textContent = recording ? 'stop' : 'mic';
+    voiceRecordButton.setAttribute('aria-label', recording ? 'Stop voice recording' : 'Start voice recording');
+    voiceWaveform.classList.toggle('animate-pulse', recording);
+    voiceWaveform.classList.toggle('opacity-100', recording);
+    voiceWaveform.classList.toggle('opacity-60', !recording);
+  };
+
+  const stopVoiceTracks = () => {
+    if (!voiceStream) return;
+    voiceStream.getTracks().forEach((track) => track.stop());
+    voiceStream = null;
+  };
+
+  const stopSpeechRecognition = () => {
+    if (!speechRecognition) return;
+    try {
+      speechRecognition.stop();
+    } catch {}
+    speechRecognition = null;
+  };
+
+  const startSpeechRecognition = () => {
+    if (!SpeechRecognition) {
+      setVoiceStatus('Recording audio. Speech-to-text is not available in this browser, so type a short summary above.');
+      return;
+    }
+
+    transcriptBase = voiceField.value.trim();
+    finalTranscript = '';
+    speechRecognition = new SpeechRecognition();
+    speechRecognition.lang = 'id-ID';
+    speechRecognition.continuous = true;
+    speechRecognition.interimResults = true;
+
+    speechRecognition.onresult = (event) => {
+      let interimTranscript = '';
+
+      for (let index = event.resultIndex; index < event.results.length; index += 1) {
+        const transcript = event.results[index][0].transcript.trim();
+        if (event.results[index].isFinal) {
+          finalTranscript = `${finalTranscript} ${transcript}`.trim();
+        } else {
+          interimTranscript = transcript;
+        }
+      }
+
+      const nextValue = [transcriptBase, finalTranscript, interimTranscript]
+        .filter(Boolean)
+        .join(' ')
+        .trim();
+
+      voiceField.value = nextValue;
+      updateDraftClaim({ voiceDescription: nextValue });
+    };
+
+    speechRecognition.onerror = () => {
+      setVoiceStatus('Recording audio. Speech-to-text stopped, but your audio preview will still be saved.');
+    };
+
+    try {
+      speechRecognition.start();
+    } catch {
+      setVoiceStatus('Recording audio. Speech-to-text could not start in this browser.');
+    }
+  };
+
+  const finishVoiceRecording = () => {
+    const voiceBlob = new Blob(voiceChunks, { type: mediaRecorder?.mimeType || 'audio/webm' });
+    if (voiceUrl) {
+      URL.revokeObjectURL(voiceUrl);
+    }
+    voiceUrl = URL.createObjectURL(voiceBlob);
+    voicePlayback.src = voiceUrl;
+    voicePlayback.classList.remove('hidden');
+    removeVoiceButton.classList.remove('hidden');
+    setVoiceStatus(
+      SpeechRecognition
+        ? 'Recording saved. Review the transcript above before submitting.'
+        : 'Recording saved for playback. Type a short summary above before submitting.'
+    );
+    stopVoiceTracks();
+  };
+
+  const stopVoiceRecording = () => {
+    if (!isRecordingVoice) return;
+    isRecordingVoice = false;
+    stopVoiceTimer();
+    stopSpeechRecognition();
+    setVoiceRecordingUi(false);
+
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    } else {
+      stopVoiceTracks();
+    }
+  };
+
+  const startVoiceRecording = async () => {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
+      setVoiceStatus('Voice recording is not supported in this browser.', true);
+      return;
+    }
+
+    try {
+      voiceStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      voiceChunks = [];
+      mediaRecorder = new MediaRecorder(voiceStream);
+      mediaRecorder.addEventListener('dataavailable', (event) => {
+        if (event.data?.size) {
+          voiceChunks.push(event.data);
+        }
+      });
+      mediaRecorder.addEventListener('stop', finishVoiceRecording, { once: true });
+      mediaRecorder.start();
+
+      isRecordingVoice = true;
+      voicePlayback.classList.add('hidden');
+      removeVoiceButton.classList.add('hidden');
+      setVoiceRecordingUi(true);
+      setVoiceStatus('Recording voice context...');
+      startVoiceTimer();
+      startSpeechRecognition();
+    } catch (error) {
+      stopVoiceTracks();
+      setVoiceRecordingUi(false);
+      setVoiceStatus(error?.name === 'NotAllowedError'
+        ? 'Microphone permission was denied.'
+        : 'Could not start microphone recording.', true);
+    }
+  };
+
+  const clearVoiceRecording = () => {
+    stopVoiceRecording();
+    if (voiceUrl) {
+      URL.revokeObjectURL(voiceUrl);
+      voiceUrl = '';
+    }
+    voiceChunks = [];
+    voicePlayback.removeAttribute('src');
+    voicePlayback.classList.add('hidden');
+    removeVoiceButton.classList.add('hidden');
+    voiceTimer.textContent = '00:00';
+    setVoiceStatus('Tap the mic to record voice context.');
   };
 
   const setFile = (file) => {
@@ -244,7 +454,21 @@ export function renderEvidence() {
     updateDraftClaim({ voiceDescription: event.target.value });
   });
 
-  browseButton.addEventListener('click', () => fileInput.click());
+  voiceRecordButton.addEventListener('click', () => {
+    if (isRecordingVoice) {
+      stopVoiceRecording();
+      return;
+    }
+
+    startVoiceRecording();
+  });
+
+  removeVoiceButton.addEventListener('click', clearVoiceRecording);
+
+  browseButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    fileInput.click();
+  });
   removeFileButton.addEventListener('click', clearFile);
   fileInput.addEventListener('change', () => setFile(fileInput.files?.[0]));
 
