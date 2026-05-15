@@ -12,7 +12,18 @@ let auth = null;
 let initError = null;
 
 function getFirebaseConfig() {
-  return window.__AURA_CONFIG__?.firebase || null;
+  const runtimeConfig = window.__AURA_CONFIG__?.firebase;
+  if (runtimeConfig) return runtimeConfig;
+
+  return {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID
+  };
 }
 
 function validateFirebaseConfig(config) {
@@ -26,7 +37,7 @@ export function initAuthService() {
 
   const config = getFirebaseConfig();
   if (!validateFirebaseConfig(config)) {
-    initError = new Error('Firebase config is missing. Add window.__AURA_CONFIG__.firebase in runtime-config.js.');
+    initError = new Error('Firebase config is missing. Add VITE_FIREBASE_* values in .env.local or window.__AURA_CONFIG__.firebase in runtime-config.js.');
     return { auth: null, error: initError };
   }
 
