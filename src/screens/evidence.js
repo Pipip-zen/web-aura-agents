@@ -8,8 +8,20 @@ const submitLabels = {
   starting: 'Starting backend analysis...'
 };
 
+const rupiahFormatter = new Intl.NumberFormat('id-ID');
+
 function getFilePreviewName(file) {
   return `${file.name} - ${Math.max(1, Math.round(file.size / 1024))} KB`;
+}
+
+function parseRupiah(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+}
+
+function formatRupiah(value) {
+  const amount = Number(value || 0);
+  return amount > 0 ? `Rp${rupiahFormatter.format(amount)}` : '';
 }
 
 export function renderEvidence() {
@@ -102,6 +114,24 @@ export function renderEvidence() {
     <div class="flex flex-col gap-4">
       <div class="flex items-center justify-between gap-3">
         <div>
+          <h2 class="font-title-sm text-title-sm text-on-surface-variant">Item Value</h2>
+          <p class="mt-1 text-body-sm text-on-surface-variant">Enter the item price in Rupiah for refund calculation.</p>
+        </div>
+        <span class="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Required</span>
+      </div>
+      <label class="rounded-2xl border border-outline-variant/50 bg-white/70 p-4 shadow-sm backdrop-blur-md">
+        <span class="mb-3 flex items-center gap-2 text-body-sm font-medium text-on-surface">
+          <span class="material-symbols-outlined text-primary text-[18px]">payments</span>
+          Item price
+        </span>
+        <input id="item-value-input" type="text" inputmode="numeric" class="min-h-12 w-full rounded-xl border border-outline-variant/60 bg-surface px-4 py-3 text-headline-md font-semibold text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Rp250.000" value="${formatRupiah(draft.itemValue)}" />
+      </label>
+      <p id="item-value-error" class="hidden text-body-sm text-error"></p>
+    </div>
+
+    <div class="flex flex-col gap-4">
+      <div class="flex items-center justify-between gap-3">
+        <div>
           <h2 class="font-title-sm text-title-sm text-on-surface-variant">Problem Description</h2>
           <p class="mt-1 text-body-sm text-on-surface-variant">Write short context so reviewer and AI understand issue faster.</p>
         </div>
@@ -177,6 +207,7 @@ export function renderEvidence() {
   const btns = container.querySelectorAll('.claim-btn');
   const descriptionField = container.querySelector('#claim-description');
   const voiceField = container.querySelector('#voice-description');
+  const itemValueInput = container.querySelector('#item-value-input');
   const fileInput = container.querySelector('#evidence-file-input');
   const browseButton = container.querySelector('#browse-files-btn');
   const dropzone = container.querySelector('#evidence-dropzone');
@@ -185,6 +216,7 @@ export function renderEvidence() {
   const selectedFileHint = container.querySelector('#selected-file-hint');
   const removeFileButton = container.querySelector('#remove-file-btn');
   const fileError = container.querySelector('#file-error');
+  const itemValueError = container.querySelector('#item-value-error');
   const submitError = container.querySelector('#submit-error');
   const submitState = container.querySelector('#submit-state');
   const analyzeBtn = container.querySelector('#evidence-analyze-btn');
@@ -220,6 +252,11 @@ export function renderEvidence() {
   const clearFileError = () => {
     fileError.classList.add('hidden');
     fileError.textContent = '';
+  };
+
+  const clearItemValueError = () => {
+    itemValueError.classList.add('hidden');
+    itemValueError.textContent = '';
   };
 
   const setSubmitState = (mode, helperText = '') => {
@@ -454,6 +491,13 @@ export function renderEvidence() {
     updateDraftClaim({ voiceDescription: event.target.value });
   });
 
+  itemValueInput.addEventListener('input', (event) => {
+    const itemValue = parseRupiah(event.target.value);
+    event.target.value = formatRupiah(itemValue);
+    updateDraftClaim({ itemValue, refundAmount: itemValue });
+    clearItemValueError();
+  });
+
   voiceRecordButton.addEventListener('click', () => {
     if (isRecordingVoice) {
       stopVoiceRecording();
@@ -489,19 +533,27 @@ export function renderEvidence() {
   });
 
   analyzeBtn.addEventListener('click', async () => {
-    const { evidenceFile, evidenceNeedsReselection, claimType, textDescription, voiceDescription, refundAmount } = state.draftClaim;
+    const { evidenceFile, evidenceNeedsReselection, claimType, textDescription, voiceDescription, itemValue } = state.draftClaim;
     const description = textDescription.trim();
     const voice = voiceDescription.trim();
+    const numericItemValue = Number(itemValue || 0);
 
     submitError.classList.add('hidden');
     submitError.textContent = '';
     clearFileError();
+    clearItemValueError();
 
     if (!evidenceFile || evidenceNeedsReselection) {
       fileError.textContent = evidenceNeedsReselection
         ? 'Please re-attach the evidence file restored from your previous draft before continuing.'
         : 'Please choose one evidence file before continuing.';
       fileError.classList.remove('hidden');
+      return;
+    }
+
+    if (numericItemValue <= 0) {
+      itemValueError.textContent = 'Please enter a valid item value in Rupiah.';
+      itemValueError.classList.remove('hidden');
       return;
     }
 
@@ -523,7 +575,8 @@ export function renderEvidence() {
         file_ids: [uploaded.file_id],
         text_description: description,
         voice_description: voice || null,
-        refund_amount: refundAmount
+        item_value: numericItemValue,
+        refund_amount: numericItemValue
       });
 
       setCurrentClaim(createdClaim);

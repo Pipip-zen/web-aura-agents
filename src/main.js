@@ -18,6 +18,7 @@ export const state = {
   currentRoute: 'hub',
   currentUser: null,
   currentUserId: null,
+  currentUsername: '',
   authReady: false,
   authError: null,
   currentClaim: null,
@@ -45,10 +46,12 @@ function initApp() {
     state.authError = error;
     state.currentUser = user;
     state.currentUserId = user?.uid || null;
+    state.currentUsername = user?.displayName || '';
 
     if (!user) {
       state.currentClaim = null;
       state.currentClaimStatus = null;
+      state.currentUsername = '';
     }
 
     setupNavigation();
@@ -221,14 +224,16 @@ function updateAccountUi() {
   const accountLabel = document.getElementById('account-label');
   const accountAvatar = document.getElementById('account-avatar');
   const accountMenu = document.getElementById('account-menu');
+  const accountMenuName = document.getElementById('account-menu-name');
   const accountMenuEmail = document.getElementById('account-menu-email');
-  if (!accountButton || !accountLabel || !accountAvatar || !accountMenu || !accountMenuEmail) return;
+  if (!accountButton || !accountLabel || !accountAvatar || !accountMenu || !accountMenuName || !accountMenuEmail) return;
 
   const user = state.currentUser;
   accountButton.classList.toggle('cursor-pointer', Boolean(user));
   accountButton.disabled = !user;
   accountButton.title = user ? 'Account menu' : 'Login required';
-  accountLabel.textContent = user?.email || 'Guest';
+  accountLabel.textContent = user ? (state.currentUsername || user.email) : 'Guest';
+  accountMenuName.textContent = user ? (state.currentUsername || user.email) : 'Guest';
   accountMenuEmail.textContent = user?.email || 'Guest';
 
   if (!user) {

@@ -7,6 +7,7 @@ export const DEFAULT_DRAFT_CLAIM = {
   evidenceFile: null,
   evidencePreviewName: '',
   evidenceNeedsReselection: false,
+  itemValue: null,
   refundAmount: 250000
 };
 
@@ -37,6 +38,7 @@ export function persistDraftClaim(draftClaim) {
       textDescription: draftClaim.textDescription,
       voiceDescription: draftClaim.voiceDescription,
       evidencePreviewName: draftClaim.evidencePreviewName,
+      itemValue: draftClaim.itemValue,
       refundAmount: draftClaim.refundAmount
     })
   );

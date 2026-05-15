@@ -4,7 +4,8 @@ import {
   getAuth,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signOut
+  signOut,
+  updateProfile
 } from 'firebase/auth';
 
 let firebaseApp = null;
@@ -59,7 +60,12 @@ export function subscribeToAuthState(callback) {
 
   return onAuthStateChanged(
     initializedAuth,
-    (user) => callback(user, null),
+    async (user) => {
+      if (user) {
+        await user.reload();
+      }
+      callback(initializedAuth.currentUser, null);
+    },
     (error) => callback(null, error)
   );
 }
@@ -71,11 +77,17 @@ export async function login(email, password) {
   return signInWithEmailAndPassword(initializedAuth, email, password);
 }
 
-export async function register(email, password) {
+export async function register(email, password, username = '') {
   const { auth: initializedAuth, error } = initAuthService();
   if (error || !initializedAuth) throw error;
 
-  return createUserWithEmailAndPassword(initializedAuth, email, password);
+  const credential = await createUserWithEmailAndPassword(initializedAuth, email, password);
+  const displayName = username.trim();
+  if (displayName) {
+    await updateProfile(credential.user, { displayName });
+  }
+
+  return credential;
 }
 
 export async function logout() {

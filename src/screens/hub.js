@@ -82,12 +82,12 @@ function renderClaimCard(claim) {
 export function renderHub() {
   const container = document.createElement('div');
   container.className = 'w-full pb-4 sm:pb-6';
-  const displayName = state.currentUser?.email?.split('@')[0] || 'there';
+  const displayName = state.currentUsername || 'there';
 
   container.innerHTML = `
     <section class="flex flex-col gap-base">
       <p class="text-primary font-label-caps uppercase tracking-wider">Dashboard Overview</p>
-      <h2 class="font-display-lg text-[clamp(2rem,8vw,3rem)] leading-tight text-on-background">Good morning, ${displayName}</h2>
+      <h2 class="font-display-lg text-[clamp(2rem,8vw,3rem)] leading-tight text-on-background">Welcome, ${displayName}</h2>
     </section>
 
     <div class="grid grid-cols-1 md:grid-cols-12 gap-gutter mt-lg">

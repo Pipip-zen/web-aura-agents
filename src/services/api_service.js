@@ -59,6 +59,18 @@ export function getApiBaseUrl() {
   return API_BASE_URL;
 }
 
+export async function registerUserProfile(profile) {
+  const response = await request('/users/register', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(profile)
+  });
+
+  return response.data;
+}
+
 export async function uploadEvidence(file) {
   const formData = new FormData();
   formData.append('file', file);

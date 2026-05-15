@@ -1,4 +1,5 @@
 import { login, register } from '../services/auth_service.js';
+import { registerUserProfile } from '../services/api_service.js';
 
 function getAuthErrorMessage(error) {
   const code = error?.code || '';
@@ -43,6 +44,12 @@ export function renderAuthScreen({ configError = null } = {}) {
         ` : ''}
 
         <form id="auth-form" class="flex flex-col gap-4">
+          ${isRegister ? `
+            <label class="flex flex-col gap-2 text-body-sm font-medium text-on-surface">
+              Username
+              <input id="auth-username" type="text" autocomplete="username" class="min-h-12 rounded-xl border border-outline-variant/60 bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="rafif.nuha" ${configError ? 'disabled' : ''} required />
+            </label>
+          ` : ''}
           <label class="flex flex-col gap-2 text-body-sm font-medium text-on-surface">
             Email
             <input id="auth-email" type="email" autocomplete="email" class="min-h-12 rounded-xl border border-outline-variant/60 bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="you@example.com" ${configError ? 'disabled' : ''} required />
@@ -66,6 +73,7 @@ export function renderAuthScreen({ configError = null } = {}) {
 
     const form = container.querySelector('#auth-form');
     const toggle = container.querySelector('#auth-mode-toggle');
+    const usernameInput = container.querySelector('#auth-username');
     const emailInput = container.querySelector('#auth-email');
     const passwordInput = container.querySelector('#auth-password');
     const errorText = container.querySelector('#auth-error');
@@ -87,9 +95,14 @@ export function renderAuthScreen({ configError = null } = {}) {
       try {
         const email = emailInput.value.trim();
         const password = passwordInput.value;
+        const username = usernameInput?.value.trim() || '';
 
         if (isRegister) {
-          await register(email, password);
+          if (!username) {
+            throw new Error('Username is required.');
+          }
+          await register(email, password, username);
+          await registerUserProfile({ username, email });
         } else {
           await login(email, password);
         }
