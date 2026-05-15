@@ -73,7 +73,7 @@ export async function registerUserProfile(profile) {
 
 export async function uploadEvidence(file) {
   const formData = new FormData();
-  formData.append('file', file);
+  formData.append("file", file);
 
   const response = await request('/upload/', {
     method: 'POST',
