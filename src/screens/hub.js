@@ -1,4 +1,5 @@
-import { navigate } from '../main.js';
+import { navigate, state } from '../main.js';
+import { fetchClaims } from '../services/api_service.js';
 
 export function renderHub() {
   const container = document.createElement('div');
@@ -56,7 +57,7 @@ export function renderHub() {
                             View All <span class="material-symbols-outlined text-[18px]">chevron_right</span>
     </button>
     </div>
-    <div class="flex flex-col gap-sm">
+    <div id="hub-claims-list" class="flex flex-col gap-sm">
     <!-- Claim Item 1 -->
     <div class="glass-card p-md rounded-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between group hover:border-primary/30 transition-colors">
     <div class="flex items-start gap-md">
@@ -141,6 +142,61 @@ export function renderHub() {
       navigate('evidence');
     });
   }
+
+  const claimsList = container.querySelector('#hub-claims-list');
+  const currency = new Intl.NumberFormat('id-ID');
+  const labelMap = {
+    approved: 'Settled',
+    rejected: 'Rejected',
+    review: 'In Review',
+    processing: 'Processing',
+    pending: 'Pending'
+  };
+
+  fetchClaims(state.currentUserId)
+    .then((claims) => {
+      if (!claims.length) return;
+
+      claimsList.innerHTML = claims
+        .slice(0, 3)
+        .map((claim) => {
+          const amount = Number(claim.refund_value || claim.refund_amount || 0);
+          const status = claim.status || 'pending';
+          const iconTextClass = status === 'approved'
+            ? 'text-secondary'
+            : status === 'rejected'
+              ? 'text-error'
+              : 'text-primary';
+          const iconBgClass = status === 'approved'
+            ? 'bg-secondary-container/20'
+            : status === 'rejected'
+              ? 'bg-error-container/20'
+              : 'bg-surface-container-highest';
+
+          return `
+            <div class="glass-card p-md rounded-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between group border-l-4 ${status === 'approved' ? 'border-l-secondary' : status === 'rejected' ? 'border-l-error' : 'border-l-primary'}">
+              <div class="flex items-start gap-md">
+                <div class="w-12 h-12 rounded-lg ${iconBgClass} flex items-center justify-center ${iconTextClass}">
+                  <span class="material-symbols-outlined">${status === 'approved' ? 'check_circle' : status === 'rejected' ? 'block' : 'hourglass_top'}</span>
+                </div>
+                <div>
+                  <h5 class="font-title-sm text-on-surface">${claim.claim_type.replaceAll('_', ' ')}</h5>
+                  <p class="text-body-sm text-on-surface-variant flex items-center gap-base">
+                    <span class="w-2 h-2 rounded-full ${status === 'approved' ? 'bg-secondary' : status === 'rejected' ? 'bg-error' : 'bg-primary'}"></span>
+                    ${claim.current_step || status}
+                  </p>
+                </div>
+              </div>
+              <div class="text-left sm:text-right">
+                <p class="font-title-sm text-on-surface">Rp${currency.format(amount)}</p>
+                <p class="text-label-caps uppercase ${status === 'approved' ? 'text-secondary' : status === 'rejected' ? 'text-error' : 'text-primary'}">${labelMap[status] || status}</p>
+              </div>
+            </div>
+          `;
+        })
+        .join('');
+    })
+    .catch(() => {});
 
   return container;
 }

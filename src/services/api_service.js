@@ -1,32 +1,87 @@
 const runtimeApiBaseUrl = window.__AURA_CONFIG__?.apiBaseUrl;
 const envApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
-const fallbackApiBaseUrl = `${window.location.origin}/api/v1`;
-const API_BASE_URL = (runtimeApiBaseUrl || envApiBaseUrl || fallbackApiBaseUrl).replace(/\/$/, '');
 
-export async function fetchClaims() {
-  try {
-    const response = await fetch(`${API_BASE_URL}/claims`);
-    if (!response.ok) throw new Error('Network response was not ok');
-    return await response.json();
-  } catch (error) {
-    console.error("Fetch claims failed:", error);
-    return [];
+function getFallbackApiBaseUrl() {
+  const { protocol, hostname, port } = window.location;
+
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return `${protocol}//${hostname}:8000/api/v1`;
   }
+
+  if (hostname === '10.0.2.2') {
+    return `${protocol}//10.0.2.2:8000/api/v1`;
+  }
+
+  if (port === '8000') {
+    return `${window.location.origin}/api/v1`;
+  }
+
+  return `${window.location.origin}/api/v1`;
+}
+
+const API_BASE_URL = (runtimeApiBaseUrl || envApiBaseUrl || getFallbackApiBaseUrl()).replace(/\/$/, '');
+
+async function request(path, options = {}) {
+  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  const contentType = response.headers.get('content-type') || '';
+  const payload = contentType.includes('application/json') ? await response.json() : null;
+
+  if (!response.ok) {
+    const message = payload?.detail || payload?.message || 'Request failed';
+    throw new Error(message);
+  }
+
+  return payload;
+}
+
+export function getApiBaseUrl() {
+  return API_BASE_URL;
 }
 
 export async function uploadEvidence(file) {
   const formData = new FormData();
   formData.append('file', file);
-  
-  try {
-    const response = await fetch(`${API_BASE_URL}/upload/`, {
-      method: 'POST',
-      body: formData
-    });
-    if (!response.ok) throw new Error('Upload failed');
-    return await response.json();
-  } catch (error) {
-    console.error("Upload failed:", error);
-    throw error;
-  }
+
+  const response = await request('/upload/', {
+    method: 'POST',
+    body: formData
+  });
+
+  return response.data;
+}
+
+export async function createClaim(payload) {
+  const response = await request('/claims/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(payload)
+  });
+
+  return response.data;
+}
+
+export async function analyzeClaim(claimId) {
+  const response = await request(`/claims/${claimId}/analyze`, {
+    method: 'POST',
+    body: ''
+  });
+
+  return response.data;
+}
+
+export async function getClaimStatus(claimId) {
+  const response = await request(`/claims/${claimId}/status`);
+  return response.data;
+}
+
+export async function getClaim(claimId) {
+  const response = await request(`/claims/${claimId}`);
+  return response.data;
+}
+
+export async function fetchClaims(userId) {
+  const response = await request(`/claims?user_id=${encodeURIComponent(userId)}`);
+  return Array.isArray(response.data) ? response.data : [];
 }

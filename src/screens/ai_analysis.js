@@ -1,8 +1,11 @@
-import { navigate } from '../main.js';
+import { navigate, setCurrentClaim, setCurrentClaimStatus, state } from '../main.js';
+import { getClaim, getClaimStatus } from '../services/api_service.js';
 
 export function renderAiAnalysis() {
   const container = document.createElement('div');
   container.className = 'w-full max-w-md mx-auto flex flex-col pb-6';
+  const minVisibleMs = 2800;
+  const startedAt = Date.now();
   
   container.innerHTML = `
     <!-- Progress Header -->
@@ -13,7 +16,7 @@ export function renderAiAnalysis() {
     </div>
     <!-- Progress Tracker -->
     <div class="w-full h-1.5 bg-surface-variant rounded-full overflow-hidden relative">
-    <div id="progress-bar" class="h-full bg-gradient-to-r from-primary-fixed-dim to-primary rounded-full w-[40%] relative overflow-hidden transition-all duration-1000">
+    <div id="progress-bar" class="h-full bg-gradient-to-r from-primary-fixed-dim to-primary rounded-full w-[8%] relative overflow-hidden transition-all duration-700">
     <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent w-full -translate-x-1/2"></div>
     </div>
     </div>
@@ -32,45 +35,45 @@ export function renderAiAnalysis() {
     <!-- Vertical Checklist (Level 2 Depth) -->
     <div class="bg-surface-container rounded-xl p-md flex flex-col gap-md border border-outline-variant/30 mt-8">
     <!-- Complete Step -->
-    <div class="flex items-start gap-md sm:items-center">
-    <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+    <div class="flex items-start gap-md sm:items-center" id="step-uploading">
+    <span class="material-symbols-outlined text-secondary step-icon" style="font-variation-settings: 'FILL' 1;">check_circle</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
-    <span class="font-body-md text-body-md text-on-surface">Uploading Evidence</span>
-    <span class="font-label-caps text-label-caps text-secondary">Complete</span>
+    <span class="font-body-md text-body-md text-on-surface step-title">Uploading Evidence</span>
+    <span class="font-label-caps text-label-caps text-secondary step-status">Complete</span>
     </div>
     </div>
     <!-- Active Step -->
-    <div class="flex items-start gap-md relative sm:items-center" id="step-2">
+    <div class="flex items-start gap-md relative sm:items-center opacity-60 transition-opacity" id="step-analyzing">
     <!-- Outer Bloom -->
     <div class="absolute -left-2 -right-2 top-1 bottom-1 bg-primary/5 rounded-lg blur-md"></div>
-    <span class="material-symbols-outlined text-primary relative z-10 animate-spin">sync</span>
+    <span class="material-symbols-outlined text-on-surface-variant relative z-10 step-icon">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center relative z-10 border-b border-outline-variant/20 pb-2">
-    <span class="font-body-md text-body-md text-primary font-medium">Analyzing Evidence</span>
-    <span class="font-label-caps text-label-caps text-primary">Processing...</span>
+    <span class="font-body-md text-body-md text-on-surface-variant step-title">Analyzing Evidence</span>
+    <span class="font-label-caps text-label-caps text-on-surface-variant step-status">Pending</span>
     </div>
     </div>
     <!-- Pending Step 1 -->
-    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-3">
-    <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-detecting">
+    <span class="material-symbols-outlined text-on-surface-variant step-icon">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
-    <span class="font-body-md text-body-md text-on-surface-variant">Detecting Damage Patterns</span>
-    <span class="font-label-caps text-label-caps text-on-surface-variant">Pending</span>
+    <span class="font-body-md text-body-md text-on-surface-variant step-title">Detecting Damage Patterns</span>
+    <span class="font-label-caps text-label-caps text-on-surface-variant step-status">Pending</span>
     </div>
     </div>
     <!-- Pending Step 2 -->
-    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-4">
-    <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-calculating">
+    <span class="material-symbols-outlined text-on-surface-variant step-icon">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center border-b border-outline-variant/20 pb-2">
-    <span class="font-body-md text-body-md text-on-surface-variant">Calculating Confidence Score</span>
-    <span class="font-label-caps text-label-caps text-on-surface-variant">Pending</span>
+    <span class="font-body-md text-body-md text-on-surface-variant step-title">Calculating Confidence Score</span>
+    <span class="font-label-caps text-label-caps text-on-surface-variant step-status">Pending</span>
     </div>
     </div>
     <!-- Pending Step 3 -->
-    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-5">
-    <span class="material-symbols-outlined text-on-surface-variant">radio_button_unchecked</span>
+    <div class="flex items-start gap-md opacity-60 transition-opacity sm:items-center" id="step-generating">
+    <span class="material-symbols-outlined text-on-surface-variant step-icon">radio_button_unchecked</span>
     <div class="flex-1 flex justify-between items-center">
-    <span class="font-body-md text-body-md text-on-surface-variant">Generating Report</span>
-    <span class="font-label-caps text-label-caps text-on-surface-variant">Pending</span>
+    <span class="font-body-md text-body-md text-on-surface-variant step-title">Generating Report</span>
+    <span class="font-label-caps text-label-caps text-on-surface-variant step-status">Pending</span>
     </div>
     </div>
     </div>
@@ -78,38 +81,174 @@ export function renderAiAnalysis() {
     <div class="bg-surface-container-high border border-outline-variant/30 rounded-lg p-md font-mono text-xs text-on-surface-variant flex flex-col gap-2 overflow-hidden relative shadow-sm mt-8">
     <div class="flex gap-2">
     <span class="text-outline">&gt;</span>
-    <span class="text-on-surface-variant">Scanning image pixels for structural anomalies... [OK]</span>
+    <span id="analysis-log-primary" class="text-on-surface-variant">Waiting for backend analysis pipeline...</span>
     </div>
     <div class="flex gap-2" id="term-2" style="display:none;">
     <span class="text-outline">&gt;</span>
-    <span class="text-on-surface-variant">Consulting Firestore realtime listener... [OK]</span>
+    <span id="analysis-log-secondary" class="text-on-surface-variant">Polling claim status endpoint...</span>
     </div>
     <div class="flex gap-2 text-primary">
     <span class="text-primary">&gt;</span>
-    <span class="font-medium tracking-wide">Executing predictive model layers...</span>
+    <span id="analysis-log-active" class="font-medium tracking-wide">Connecting to backend...</span>
     <span class="w-1.5 h-3.5 bg-primary inline-block align-middle ml-1 mt-0.5 animate-pulse"></span>
     </div>
     </div>
+    <div id="analysis-error" class="hidden rounded-xl border border-error/20 bg-error-container/50 p-4 text-body-sm text-on-error-container mt-6"></div>
   `;
 
-  // Mock auto progress
-  setTimeout(() => {
-    container.querySelector('#progress-bar').style.width = '60%';
-    container.querySelector('#step-3').classList.remove('opacity-60');
-    container.querySelector('#step-3 span').innerText = 'sync';
-    container.querySelector('#step-3 span').classList.add('text-primary', 'animate-spin');
-    container.querySelector('#step-3 span').classList.remove('text-on-surface-variant');
-    container.querySelector('#step-3 .text-on-surface-variant').classList.replace('text-on-surface-variant', 'text-primary');
-    container.querySelector('#step-3 .text-on-surface-variant').classList.replace('text-on-surface-variant', 'text-primary'); // for the pending text
-    container.querySelectorAll('#step-3 span')[2].innerText = 'Processing...';
-    
-    container.querySelector('#term-2').style.display = 'flex';
-  }, 1500);
+  const claimId = state.currentClaim?.id;
+  const progressBar = container.querySelector('#progress-bar');
+  const errorBox = container.querySelector('#analysis-error');
+  const secondaryLog = container.querySelector('#term-2');
+  const activeLog = container.querySelector('#analysis-log-active');
+  const primaryLog = container.querySelector('#analysis-log-primary');
+  const secondaryLogText = container.querySelector('#analysis-log-secondary');
 
-  setTimeout(() => {
-    container.querySelector('#progress-bar').style.width = '100%';
-    navigate('decision');
-  }, 3500);
+  const stepOrder = [
+    'uploading_evidence',
+    'analyzing_evidence',
+    'detecting_damage_patterns',
+    'calculating_confidence_score',
+    'generating_report',
+    'complete'
+  ];
+
+  const stepMap = {
+    uploading_evidence: container.querySelector('#step-uploading'),
+    analyzing_evidence: container.querySelector('#step-analyzing'),
+    detecting_damage_patterns: container.querySelector('#step-detecting'),
+    calculating_confidence_score: container.querySelector('#step-calculating'),
+    generating_report: container.querySelector('#step-generating')
+  };
+
+  const labels = {
+    uploading_evidence: 'Uploading Evidence',
+    analyzing_evidence: 'Analyzing Evidence',
+    detecting_damage_patterns: 'Detecting Damage Patterns',
+    calculating_confidence_score: 'Calculating Confidence Score',
+    generating_report: 'Generating Report',
+    complete: 'Complete',
+    failed: 'Failed'
+  };
+
+  const markStepState = (element, mode) => {
+    if (!element) return;
+    const icon = element.querySelector('.step-icon');
+    const title = element.querySelector('.step-title');
+    const status = element.querySelector('.step-status');
+
+    element.classList.remove('opacity-60');
+    icon.className = 'material-symbols-outlined step-icon';
+    title.className = 'font-body-md text-body-md step-title';
+    status.className = 'font-label-caps text-label-caps step-status';
+
+    if (mode === 'complete') {
+      icon.textContent = 'check_circle';
+      icon.classList.add('text-secondary');
+      title.classList.add('text-on-surface');
+      status.classList.add('text-secondary');
+      status.textContent = 'Complete';
+    } else if (mode === 'active') {
+      icon.textContent = 'sync';
+      icon.classList.add('text-primary', 'animate-spin');
+      title.classList.add('text-primary', 'font-medium');
+      status.classList.add('text-primary');
+      status.textContent = 'Processing...';
+    } else {
+      element.classList.add('opacity-60');
+      icon.textContent = 'radio_button_unchecked';
+      icon.classList.add('text-on-surface-variant');
+      title.classList.add('text-on-surface-variant');
+      status.classList.add('text-on-surface-variant');
+      status.textContent = 'Pending';
+    }
+  };
+
+  const updateProgressUi = (statusPayload) => {
+    const currentStep = statusPayload?.current_step || 'uploading_evidence';
+    const currentIndex = Math.max(0, stepOrder.indexOf(currentStep));
+    const progressValue = currentStep === 'complete'
+      ? 100
+      : Math.max(8, Math.round(((currentIndex + 1) / (stepOrder.length - 1)) * 100));
+
+    progressBar.style.width = `${progressValue}%`;
+    secondaryLog.style.display = 'flex';
+    primaryLog.textContent = `Claim #${statusPayload.claim_id || claimId} is ${statusPayload.status || 'processing'}.`;
+    secondaryLogText.textContent = `Current step: ${labels[currentStep] || currentStep}`;
+    activeLog.textContent = `Executing ${labels[currentStep] || currentStep}...`;
+
+    Object.entries(stepMap).forEach(([key, element]) => {
+      if (statusPayload.status === 'failed') {
+        markStepState(element, 'pending');
+        return;
+      }
+
+      if (currentStep === 'complete') {
+        markStepState(element, 'complete');
+        return;
+      }
+
+      const index = stepOrder.indexOf(key);
+      if (index < currentIndex) {
+        markStepState(element, 'complete');
+      } else if (key === currentStep) {
+        markStepState(element, 'active');
+      } else {
+        markStepState(element, 'pending');
+      }
+    });
+  };
+
+  const showError = (message) => {
+    errorBox.textContent = message;
+    errorBox.classList.remove('hidden');
+    activeLog.textContent = 'Analysis stopped.';
+  };
+
+  if (!claimId) {
+    showError('No active claim found. Please create a claim first.');
+    return container;
+  }
+
+  let pollTimer = null;
+
+  const stopPolling = () => {
+    if (pollTimer) {
+      clearTimeout(pollTimer);
+    }
+  };
+
+  const poll = async () => {
+    try {
+      const statusPayload = await getClaimStatus(claimId);
+      setCurrentClaimStatus(statusPayload);
+      updateProgressUi(statusPayload);
+
+      if (statusPayload.status === 'approved' || statusPayload.status === 'review' || statusPayload.status === 'rejected') {
+        const fullClaim = await getClaim(claimId);
+        setCurrentClaim(fullClaim);
+        const remainingMs = Math.max(0, minVisibleMs - (Date.now() - startedAt));
+        activeLog.textContent = 'Analysis complete. Preparing final report...';
+        window.setTimeout(() => {
+          navigate('decision');
+        }, remainingMs);
+        return;
+      }
+
+      if (statusPayload.status === 'failed') {
+        const failedClaim = await getClaim(claimId);
+        setCurrentClaim(failedClaim);
+        showError(failedClaim.ai_explanation || 'Analysis failed on backend.');
+        return;
+      }
+
+      pollTimer = window.setTimeout(poll, 1400);
+    } catch (error) {
+      showError(error.message || 'Failed to fetch claim status. Check whether backend is running.');
+    }
+  };
+
+  poll();
 
   return container;
 }

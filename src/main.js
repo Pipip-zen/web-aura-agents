@@ -6,8 +6,19 @@ import { renderDecision } from './screens/decision.js';
 import { renderNotifications } from './screens/notifications.js';
 
 // App State
-const state = {
-  currentRoute: 'hub'
+export const state = {
+  currentRoute: 'hub',
+  currentUserId: 'user_001',
+  currentClaim: null,
+  currentClaimStatus: null,
+  draftClaim: {
+    claimType: 'product_defect',
+    textDescription: '',
+    voiceDescription: '',
+    evidenceFile: null,
+    evidencePreviewName: '',
+    refundAmount: 250000
+  }
 };
 
 // Routes definition
@@ -115,6 +126,32 @@ function updateLayoutForRoute(route) {
   navContainer.classList.toggle('is-hidden', !showNav);
   navContainer.setAttribute('aria-hidden', String(!showNav));
   appContent.classList.toggle('nav-hidden', !showNav);
+}
+
+export function updateDraftClaim(patch) {
+  state.draftClaim = {
+    ...state.draftClaim,
+    ...patch
+  };
+}
+
+export function setCurrentClaim(claim) {
+  state.currentClaim = claim;
+}
+
+export function setCurrentClaimStatus(status) {
+  state.currentClaimStatus = status;
+}
+
+export function resetDraftClaim() {
+  state.draftClaim = {
+    claimType: 'product_defect',
+    textDescription: '',
+    voiceDescription: '',
+    evidenceFile: null,
+    evidencePreviewName: '',
+    refundAmount: 250000
+  };
 }
 
 export function navigate(route) {
