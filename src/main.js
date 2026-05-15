@@ -5,6 +5,8 @@ import { renderAiAnalysis } from './screens/ai_analysis.js';
 import { renderDecision } from './screens/decision.js';
 import { renderNotifications } from './screens/notifications.js';
 import { renderAuthScreen } from './screens/auth.js';
+import { renderOnboarding } from './screens/onboarding.js';
+import { renderSellerDashboard } from './screens/seller_dashboard.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   clearDraftClaimPersistence,
@@ -29,10 +31,12 @@ export const state = {
 // Routes definition
 export const routes = {
   'hub': { label: 'Hub', icon: 'grid_view', render: renderHub, showNav: true },
+  'seller_dashboard': { label: 'Seller Dashboard', icon: 'storefront', render: renderSellerDashboard, showNav: true },
   'evidence': { label: 'Create Claim', icon: 'add_circle', render: renderEvidence, showNav: true },
   'notifications': { label: 'Notifications', icon: 'notifications', render: renderNotifications, showNav: true },
   'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false },
-  'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false }
+  'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false },
+  'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false }
 };
 
 function initApp() {
@@ -56,18 +60,36 @@ function initApp() {
 
     setupNavigation();
     updateAccountUi();
-    navigate(user ? state.currentRoute : 'auth');
+
+    let targetRoute = user ? state.currentRoute : 'auth';
+    if (user) {
+      if (sessionStorage.getItem('is_new_user') === 'true') {
+        targetRoute = 'onboarding';
+      } else {
+        const role = localStorage.getItem('aura_user_role') || 'buyer';
+        if (targetRoute === 'hub' && role === 'seller') {
+          targetRoute = 'seller_dashboard';
+        }
+      }
+    }
+    navigate(targetRoute);
   });
 }
 
-function setupNavigation() {
+export function setupNavigation() {
   const navContainer = document.getElementById('bottom-nav');
   const desktopContainer = document.getElementById('desktop-nav');
   navContainer.innerHTML = '';
   desktopContainer.innerHTML = '';
   
+  const role = localStorage.getItem('aura_user_role') || 'buyer';
+
   Object.keys(routes).forEach(route => {
     if (!routes[route].showNav) return;
+
+    // Filter routes based on role
+    if (role !== 'seller' && route === 'seller_dashboard') return;
+    if (role === 'seller' && (route === 'hub' || route === 'evidence')) return;
 
     // Mobile nav
     const item = document.createElement('a');
@@ -137,6 +159,9 @@ function setupAccountMenu() {
       await logout();
       state.currentRoute = 'hub';
       resetDraftClaim();
+      localStorage.removeItem('aura_user_role');
+      localStorage.removeItem('aura_user_id');
+      sessionStorage.removeItem('is_new_user');
     } catch (error) {
       logoutButton.textContent = error.message || 'Logout failed';
     } finally {

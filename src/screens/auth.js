@@ -101,8 +101,17 @@ export function renderAuthScreen({ configError = null } = {}) {
           if (!username) {
             throw new Error('Username is required.');
           }
-          await register(email, password, username);
-          await registerUserProfile({ username, email });
+          
+          // Set this before register() so that onAuthStateChanged catches it instantly
+          sessionStorage.setItem('is_new_user', 'true');
+          
+          try {
+            await register(email, password, username);
+            await registerUserProfile({ username, email });
+          } catch (err) {
+            sessionStorage.removeItem('is_new_user');
+            throw err;
+          }
         } else {
           await login(email, password);
         }

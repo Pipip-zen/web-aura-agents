@@ -71,6 +71,18 @@ export async function registerUserProfile(profile) {
   return response.data;
 }
 
+export async function completeRegistration(role) {
+  const response = await request('/users/role', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ role })
+  });
+
+  return response?.data;
+}
+
 export async function uploadEvidence(file) {
   const formData = new FormData();
   formData.append("file", file);
