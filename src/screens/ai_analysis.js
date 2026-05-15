@@ -94,6 +94,9 @@ export function renderAiAnalysis() {
     </div>
     </div>
     <div id="analysis-error" class="hidden rounded-xl border border-error/20 bg-error-container/50 p-4 text-body-sm text-on-error-container mt-6"></div>
+    <button id="analysis-retry-btn" class="hidden mt-4 w-full rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-body-md font-medium text-primary hover:bg-primary/15">
+      Back to Create Claim
+    </button>
   `;
 
   const claimId = state.currentClaim?.id;
@@ -103,6 +106,7 @@ export function renderAiAnalysis() {
   const activeLog = container.querySelector('#analysis-log-active');
   const primaryLog = container.querySelector('#analysis-log-primary');
   const secondaryLogText = container.querySelector('#analysis-log-secondary');
+  const retryButton = container.querySelector('#analysis-retry-btn');
 
   const stepOrder = [
     'uploading_evidence',
@@ -129,6 +133,16 @@ export function renderAiAnalysis() {
     generating_report: 'Generating Report',
     complete: 'Complete',
     failed: 'Failed'
+  };
+
+  const stepLogs = {
+    uploading_evidence: 'Verifying uploaded evidence package and metadata...',
+    analyzing_evidence: 'Running multimodal reasoning against the evidence set...',
+    detecting_damage_patterns: 'Cross-checking visible damage signals and claim context...',
+    calculating_confidence_score: 'Computing decision confidence and refund recommendation...',
+    generating_report: 'Writing final decision payload and explanation...',
+    complete: 'Backend decision finalized. Preparing final report...',
+    failed: 'Backend workflow returned a failure state.'
   };
 
   const markStepState = (element, mode) => {
@@ -175,7 +189,7 @@ export function renderAiAnalysis() {
     secondaryLog.style.display = 'flex';
     primaryLog.textContent = `Claim #${statusPayload.claim_id || claimId} is ${statusPayload.status || 'processing'}.`;
     secondaryLogText.textContent = `Current step: ${labels[currentStep] || currentStep}`;
-    activeLog.textContent = `Executing ${labels[currentStep] || currentStep}...`;
+    activeLog.textContent = stepLogs[currentStep] || `Executing ${labels[currentStep] || currentStep}...`;
 
     Object.entries(stepMap).forEach(([key, element]) => {
       if (statusPayload.status === 'failed') {
@@ -203,6 +217,7 @@ export function renderAiAnalysis() {
     errorBox.textContent = message;
     errorBox.classList.remove('hidden');
     activeLog.textContent = 'Analysis stopped.';
+    retryButton.classList.remove('hidden');
   };
 
   if (!claimId) {
@@ -218,6 +233,10 @@ export function renderAiAnalysis() {
     }
   };
 
+  retryButton.addEventListener('click', () => {
+    navigate('evidence');
+  });
+
   const poll = async () => {
     try {
       const statusPayload = await getClaimStatus(claimId);
@@ -228,7 +247,11 @@ export function renderAiAnalysis() {
         const fullClaim = await getClaim(claimId);
         setCurrentClaim(fullClaim);
         const remainingMs = Math.max(0, minVisibleMs - (Date.now() - startedAt));
-        activeLog.textContent = 'Analysis complete. Preparing final report...';
+        activeLog.textContent = statusPayload.status === 'approved'
+          ? 'Decision: auto-approve with refund recommendation ready.'
+          : statusPayload.status === 'review'
+            ? 'Decision: manual review required. Preparing summary for reviewer.'
+            : 'Decision: reject. Preparing explanation payload.';
         window.setTimeout(() => {
           navigate('decision');
         }, remainingMs);
@@ -236,6 +259,7 @@ export function renderAiAnalysis() {
       }
 
       if (statusPayload.status === 'failed') {
+        stopPolling();
         const failedClaim = await getClaim(claimId);
         setCurrentClaim(failedClaim);
         showError(failedClaim.ai_explanation || 'Analysis failed on backend.');
@@ -244,6 +268,7 @@ export function renderAiAnalysis() {
 
       pollTimer = window.setTimeout(poll, 1400);
     } catch (error) {
+      stopPolling();
       showError(error.message || 'Failed to fetch claim status. Check whether backend is running.');
     }
   };

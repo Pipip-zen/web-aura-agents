@@ -11,6 +11,10 @@ export function renderDecision() {
   const damageType = claim?.damage_type || 'Unknown';
   const aiExplanation = claim?.ai_explanation || 'Backend analysis result is not available.';
   const decisionLabel = decision.replaceAll('_', ' ');
+  const claimTypeLabel = claim?.claim_type ? claim.claim_type.replaceAll('_', ' ') : 'Unknown';
+  const submittedDescription = claim?.text_description || state.draftClaim?.textDescription || 'No written description was provided.';
+  const evidenceSummary = claim?.file_ids?.[0] || state.draftClaim?.evidencePreviewName || 'Single evidence file attached';
+  const updatedAtLabel = claim?.updated_at ? new Date(claim.updated_at).toLocaleString('id-ID') : 'Live backend response';
   const decisionTone = decision === 'AUTO_APPROVE'
     ? 'text-[#00C853] border-[#00C853]/40 bg-[#00C853]/10'
     : decision === 'REJECT'
@@ -19,6 +23,7 @@ export function renderDecision() {
   const decisionIcon = decision === 'AUTO_APPROVE' ? 'verified' : decision === 'REJECT' ? 'block' : 'shield';
   const coverageLabel = status === 'approved' ? 'Full' : status === 'review' ? 'Manual Review' : 'Unavailable';
   const coverageTone = status === 'approved' ? 'text-[#00C853]' : status === 'review' ? 'text-amber-600' : 'text-error';
+  const ctaLabel = status === 'approved' ? 'Back To Dashboard' : status === 'review' ? 'Return To Dashboard' : 'Create Another Claim';
   
   container.innerHTML = `
     <!-- Progress Indicator -->
@@ -71,6 +76,40 @@ export function renderDecision() {
     <p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">${aiExplanation}</p>
     </div>
     </div>
+    <div class="mx-auto mt-6 grid w-full max-w-lg grid-cols-1 gap-md rounded-2xl border border-outline-variant/40 bg-surface-container-low p-lg shadow-sm">
+      <div class="flex items-center gap-sm text-outline">
+        <span class="material-symbols-outlined text-sm">description</span>
+        <span class="font-label-caps text-label-caps tracking-wider uppercase">Submitted Context</span>
+      </div>
+      <div class="grid grid-cols-1 gap-md sm:grid-cols-2">
+        <div class="rounded-xl bg-surface p-4">
+          <p class="text-label-caps text-outline uppercase">Claim Type</p>
+          <p class="mt-2 text-body-md text-on-surface">${claimTypeLabel}</p>
+        </div>
+        <div class="rounded-xl bg-surface p-4">
+          <p class="text-label-caps text-outline uppercase">Evidence</p>
+          <p class="mt-2 break-words text-body-md text-on-surface">${evidenceSummary}</p>
+        </div>
+      </div>
+      <div class="rounded-xl bg-surface p-4">
+        <p class="text-label-caps text-outline uppercase">Problem Description</p>
+        <p class="mt-2 text-body-md leading-relaxed text-on-surface-variant">${submittedDescription}</p>
+      </div>
+      <div class="grid grid-cols-1 gap-md sm:grid-cols-3">
+        <div class="rounded-xl bg-surface p-4">
+          <p class="text-label-caps text-outline uppercase">Backend Status</p>
+          <p class="mt-2 text-body-md text-on-surface">${status}</p>
+        </div>
+        <div class="rounded-xl bg-surface p-4">
+          <p class="text-label-caps text-outline uppercase">AI Decision</p>
+          <p class="mt-2 text-body-md text-on-surface">${decisionLabel}</p>
+        </div>
+        <div class="rounded-xl bg-surface p-4">
+          <p class="text-label-caps text-outline uppercase">Updated At</p>
+          <p class="mt-2 text-body-md text-on-surface">${updatedAtLabel}</p>
+        </div>
+      </div>
+    </div>
     <!-- Summary Bento Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-md mx-auto w-full max-w-lg md:max-w-full mt-sm">
     <!-- Damage Type -->
@@ -108,7 +147,7 @@ export function renderDecision() {
     <div class="absolute inset-0 opacity-0 group-hover:opacity-100 bg-white/20 transition-opacity duration-300"></div>
     <!-- Content -->
     <span class="relative z-10 font-label-caps text-label-caps text-white tracking-widest font-bold flex items-center gap-sm uppercase">
-                        Back To Dashboard
+                        ${ctaLabel}
                         <span class="material-symbols-outlined text-sm">arrow_forward</span>
     </span>
     </button>

@@ -4,21 +4,21 @@ import { renderEvidence } from './screens/evidence.js';
 import { renderAiAnalysis } from './screens/ai_analysis.js';
 import { renderDecision } from './screens/decision.js';
 import { renderNotifications } from './screens/notifications.js';
+import {
+  clearDraftClaimPersistence,
+  DEFAULT_DRAFT_CLAIM,
+  DEMO_USER_ID,
+  loadDraftClaim,
+  persistDraftClaim
+} from './config/demo.js';
 
 // App State
 export const state = {
   currentRoute: 'hub',
-  currentUserId: 'user_001',
+  currentUserId: DEMO_USER_ID,
   currentClaim: null,
   currentClaimStatus: null,
-  draftClaim: {
-    claimType: 'product_defect',
-    textDescription: '',
-    voiceDescription: '',
-    evidenceFile: null,
-    evidencePreviewName: '',
-    refundAmount: 250000
-  }
+  draftClaim: loadDraftClaim()
 };
 
 // Routes definition
@@ -33,6 +33,7 @@ export const routes = {
 function initApp() {
   setupNavigation();
   setupDragScroll();
+  registerServiceWorker();
   navigate(state.currentRoute);
 }
 
@@ -133,6 +134,7 @@ export function updateDraftClaim(patch) {
     ...state.draftClaim,
     ...patch
   };
+  persistDraftClaim(state.draftClaim);
 }
 
 export function setCurrentClaim(claim) {
@@ -145,13 +147,17 @@ export function setCurrentClaimStatus(status) {
 
 export function resetDraftClaim() {
   state.draftClaim = {
-    claimType: 'product_defect',
-    textDescription: '',
-    voiceDescription: '',
-    evidenceFile: null,
-    evidencePreviewName: '',
-    refundAmount: 250000
+    ...DEFAULT_DRAFT_CLAIM
   };
+  clearDraftClaimPersistence();
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  });
 }
 
 export function navigate(route) {

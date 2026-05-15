@@ -22,7 +22,14 @@ function getFallbackApiBaseUrl() {
 const API_BASE_URL = (runtimeApiBaseUrl || envApiBaseUrl || getFallbackApiBaseUrl()).replace(/\/$/, '');
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, options);
+  let response;
+
+  try {
+    response = await fetch(`${API_BASE_URL}${path}`, options);
+  } catch {
+    throw new Error(`Cannot reach backend at ${API_BASE_URL}. Check runtime-config.js or VITE_API_BASE_URL.`);
+  }
+
   const contentType = response.headers.get('content-type') || '';
   const payload = contentType.includes('application/json') ? await response.json() : null;
 
