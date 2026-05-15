@@ -69,6 +69,27 @@ export function renderEvidence() {
                         </button>
     </div>
     </div>
+    <!-- Written Description -->
+    <div class="flex flex-col gap-4">
+    <div class="flex items-center justify-between gap-3">
+    <div>
+    <h2 class="font-title-sm text-title-sm text-on-surface-variant">Problem Description</h2>
+    <p class="mt-1 text-body-sm text-on-surface-variant">Write short context so reviewer and AI understand issue faster.</p>
+    </div>
+    <span class="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-primary">Recommended</span>
+    </div>
+    <div class="rounded-2xl border border-outline-variant/50 bg-white/70 p-4 shadow-sm backdrop-blur-md">
+    <label class="mb-3 flex items-center gap-2 text-body-sm font-medium text-on-surface" for="claim-description">
+    <span class="material-symbols-outlined text-primary text-[18px]">edit_note</span>
+    Explain what happened
+    </label>
+    <textarea id="claim-description" class="min-h-[132px] w-full resize-none rounded-xl border border-outline-variant/60 bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20" placeholder="Example: Screen cracked after package arrived. Box had visible dent on the lower-right corner and device would not turn on after unboxing."></textarea>
+    <div class="mt-3 flex items-start gap-2 text-body-sm text-on-surface-variant">
+    <span class="material-symbols-outlined mt-0.5 text-[16px] text-primary/70">lightbulb</span>
+    Include timeline, visible damage, and anything unusual during delivery or usage.
+    </div>
+    </div>
+    </div>
     <!-- Voice Description -->
     <div class="flex flex-col gap-4">
     <div class="flex items-center justify-between gap-3">
