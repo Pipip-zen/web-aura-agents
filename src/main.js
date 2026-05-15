@@ -95,23 +95,51 @@ function setupNavigation() {
 
 function setupAccountMenu() {
   const accountButton = document.getElementById('account-button');
-  const accountLabel = document.getElementById('account-label');
-  if (!accountButton) return;
+  const accountMenu = document.getElementById('account-menu');
+  const logoutButton = document.getElementById('account-logout-btn');
+  if (!accountButton || !accountMenu || !logoutButton) return;
 
-  accountButton.addEventListener('click', async () => {
+  const closeMenu = () => {
+    accountMenu.classList.add('hidden');
+    accountButton.setAttribute('aria-expanded', 'false');
+  };
+
+  const toggleMenu = () => {
+    if (!state.currentUser) return;
+    accountMenu.classList.toggle('hidden');
+    accountButton.setAttribute('aria-expanded', String(!accountMenu.classList.contains('hidden')));
+  };
+
+  accountButton.addEventListener('click', (event) => {
+    event.stopPropagation();
+    toggleMenu();
+  });
+
+  accountMenu.addEventListener('click', (event) => {
+    event.stopPropagation();
+  });
+
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeMenu();
+  });
+
+  logoutButton.addEventListener('click', async () => {
     if (!state.currentUser) return;
 
-    accountButton.disabled = true;
-    if (accountLabel) accountLabel.textContent = 'Signing out...';
+    logoutButton.disabled = true;
+    logoutButton.textContent = 'Signing out...';
 
     try {
       await logout();
       state.currentRoute = 'hub';
       resetDraftClaim();
     } catch (error) {
-      if (accountLabel) accountLabel.textContent = error.message || 'Logout failed';
+      logoutButton.textContent = error.message || 'Logout failed';
     } finally {
-      accountButton.disabled = false;
+      logoutButton.disabled = false;
+      logoutButton.innerHTML = '<span class="material-symbols-outlined text-[18px]">logout</span> Logout';
+      closeMenu();
       updateAccountUi();
     }
   });
@@ -171,7 +199,7 @@ function updateLayoutForRoute(route) {
 
   navContainer.classList.toggle('is-hidden', !showNav);
   navContainer.setAttribute('aria-hidden', String(!showNav));
-  desktopContainer.classList.toggle('hidden', !showNav);
+  desktopContainer.classList.toggle('md:hidden', !showNav);
   desktopContainer.classList.toggle('md:flex', showNav);
   desktopContainer.setAttribute('aria-hidden', String(!showNav));
   appContent.classList.toggle('nav-hidden', !showNav);
@@ -192,13 +220,21 @@ function updateAccountUi() {
   const accountButton = document.getElementById('account-button');
   const accountLabel = document.getElementById('account-label');
   const accountAvatar = document.getElementById('account-avatar');
-  if (!accountButton || !accountLabel || !accountAvatar) return;
+  const accountMenu = document.getElementById('account-menu');
+  const accountMenuEmail = document.getElementById('account-menu-email');
+  if (!accountButton || !accountLabel || !accountAvatar || !accountMenu || !accountMenuEmail) return;
 
   const user = state.currentUser;
   accountButton.classList.toggle('cursor-pointer', Boolean(user));
   accountButton.disabled = !user;
-  accountButton.title = user ? 'Logout' : 'Login required';
+  accountButton.title = user ? 'Account menu' : 'Login required';
   accountLabel.textContent = user?.email || 'Guest';
+  accountMenuEmail.textContent = user?.email || 'Guest';
+
+  if (!user) {
+    accountMenu.classList.add('hidden');
+    accountButton.setAttribute('aria-expanded', 'false');
+  }
 
   const initial = (user?.email || 'A').trim().charAt(0).toUpperCase();
   accountAvatar.textContent = initial;
