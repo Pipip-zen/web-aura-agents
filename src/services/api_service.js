@@ -130,3 +130,8 @@ export async function fetchClaims(userId) {
   const response = await request(`/claims?user_id=${encodeURIComponent(userId)}`);
   return Array.isArray(response.data) ? response.data : [];
 }
+
+export async function fetchSellerClaims() {
+  const response = await request(`/seller/claims?role=seller`);
+  return Array.isArray(response.data) ? response.data : [];
+}
