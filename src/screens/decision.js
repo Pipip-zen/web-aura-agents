@@ -10,6 +10,15 @@ function formatDecisionLabel(decision) {
   return decisionLabels[decision] || decision.replaceAll('_', ' ');
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 export function renderDecision() {
   const container = document.createElement('div');
   container.className = 'w-full max-w-md mx-auto md:max-w-4xl flex flex-col pb-8';
@@ -29,6 +38,8 @@ export function renderDecision() {
   if (evidenceSummary.length > 30 && evidenceSummary.includes('-')) {
     evidenceSummary = `File: ${evidenceSummary.split('-')[0]}...`;
   }
+  const evidencePreviewUrl = claim?.evidence_url || state.draftClaim?.evidencePreviewUrl || '';
+  const hasEvidenceImage = Boolean(evidencePreviewUrl);
   const updatedAtLabel = claim?.updated_at ? new Date(claim.updated_at).toLocaleString('id-ID') : 'Live backend response';
   const statusFormatted = status.charAt(0).toUpperCase() + status.slice(1);
   const decisionTone = decision === 'AUTO_APPROVE'
@@ -133,7 +144,16 @@ export function renderDecision() {
           </div>
           <div class="flex-1">
             <p class="text-[10px] font-bold text-outline uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">attach_file</span> Evidence</p>
-            <p class="text-body-md text-on-surface font-semibold truncate bg-surface-container-high/50 py-1.5 px-3 rounded-lg inline-block w-full max-w-[150px] border border-outline-variant/20" title="${evidenceSummary}">${evidenceSummary}</p>
+            <div class="flex items-center gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-high/50 p-2.5">
+              ${hasEvidenceImage ? `
+                <img src="${escapeHtml(evidencePreviewUrl)}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-cover">
+              ` : `
+                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-outline-variant/40 bg-surface-container text-on-surface-variant">
+                  <span class="material-symbols-outlined text-[18px]">attach_file</span>
+                </div>
+              `}
+              <p class="min-w-0 text-body-md text-on-surface font-semibold truncate" title="${escapeHtml(evidenceSummary)}">${evidenceSummary}</p>
+            </div>
           </div>
         </div>
         <!-- Row 2 -->

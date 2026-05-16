@@ -14,6 +14,10 @@ function getFilePreviewName(file) {
   return `${file.name} - ${Math.max(1, Math.round(file.size / 1024))} KB`;
 }
 
+function getFilePreviewUrl(file) {
+  return file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
+}
+
 function parseRupiah(value) {
   const digits = String(value || '').replace(/\D/g, '');
   return digits ? Number(digits) : 0;
@@ -249,6 +253,13 @@ export function renderEvidence() {
     browseButton.textContent = evidencePreviewName && !evidenceNeedsReselection ? 'Replace File' : 'Browse Files';
   };
 
+  const revokeDraftPreviewUrl = () => {
+    const previewUrl = state.draftClaim?.evidencePreviewUrl;
+    if (previewUrl?.startsWith('blob:')) {
+      URL.revokeObjectURL(previewUrl);
+    }
+  };
+
   const clearFileError = () => {
     fileError.classList.add('hidden');
     fileError.textContent = '';
@@ -453,9 +464,12 @@ export function renderEvidence() {
 
   const setFile = (file) => {
     if (!file) return;
+    revokeDraftPreviewUrl();
     updateDraftClaim({
       evidenceFile: file,
       evidencePreviewName: getFilePreviewName(file),
+      evidencePreviewUrl: getFilePreviewUrl(file),
+      evidenceMimeType: file.type || '',
       evidenceNeedsReselection: false
     });
     fileInput.value = '';
@@ -464,9 +478,12 @@ export function renderEvidence() {
   };
 
   const clearFile = () => {
+    revokeDraftPreviewUrl();
     updateDraftClaim({
       evidenceFile: null,
       evidencePreviewName: '',
+      evidencePreviewUrl: '',
+      evidenceMimeType: '',
       evidenceNeedsReselection: false
     });
     fileInput.value = '';

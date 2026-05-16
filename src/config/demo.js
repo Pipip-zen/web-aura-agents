@@ -6,6 +6,8 @@ export const DEFAULT_DRAFT_CLAIM = {
   voiceDescription: '',
   evidenceFile: null,
   evidencePreviewName: '',
+  evidencePreviewUrl: '',
+  evidenceMimeType: '',
   evidenceNeedsReselection: false,
   itemValue: null,
   refundAmount: 250000
@@ -23,6 +25,8 @@ export function loadDraftClaim() {
       ...DEFAULT_DRAFT_CLAIM,
       ...parsed,
       evidenceFile: null,
+      evidencePreviewUrl: '',
+      evidenceMimeType: '',
       evidenceNeedsReselection: Boolean(parsed?.evidencePreviewName)
     };
   } catch {

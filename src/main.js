@@ -375,6 +375,10 @@ export function setCurrentClaimStatus(status) {
 }
 
 export function resetDraftClaim() {
+  const previewUrl = state.draftClaim?.evidencePreviewUrl;
+  if (previewUrl?.startsWith('blob:')) {
+    URL.revokeObjectURL(previewUrl);
+  }
   state.draftClaim = {
     ...DEFAULT_DRAFT_CLAIM
   };
