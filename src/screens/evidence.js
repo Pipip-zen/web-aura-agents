@@ -98,7 +98,7 @@ export function renderEvidence() {
           <div class="absolute inset-0 rounded-full border border-primary/30 animate-pulse"></div>
         </div>
         <h3 class="font-headline-md text-headline-md text-on-surface mb-2 relative z-10">Drop Photo or Video</h3>
-        <p class="font-body-sm text-body-sm text-on-surface-variant relative z-10 max-w-[220px] mb-4">Select one evidence file for the live demo. Max 500MB, 2 minute duration limit.</p>
+        <p class="font-body-sm text-body-sm text-on-surface-variant relative z-10 max-w-[220px] mb-4">Select one evidence file. Max file size 25 MB (photos & short videos).</p>
         <button id="browse-files-btn" type="button" class="bg-surface border border-outline-variant rounded-full px-6 py-2 font-label-caps text-label-caps text-primary uppercase tracking-wider relative z-10 hover:bg-surface-variant transition-colors shadow-sm">
           ${draft.evidencePreviewName && !draft.evidenceNeedsReselection ? 'Replace File' : 'Browse Files'}
         </button>
@@ -610,6 +610,17 @@ export function renderEvidence() {
     if (!description) {
       submitError.textContent = 'Please write a short problem description before starting analysis.';
       submitError.classList.remove('hidden');
+      return;
+    }
+
+    // Guard: Cloud Run has a 32MB request body limit. Videos larger than ~25MB
+    // will cause the connection to be dropped, showing a confusing network error.
+    const MAX_UPLOAD_BYTES = 25 * 1024 * 1024; // 25 MB
+    if (evidenceFile.size > MAX_UPLOAD_BYTES) {
+      const fileSizeMB = (evidenceFile.size / (1024 * 1024)).toFixed(1);
+      submitError.textContent = `File terlalu besar (${fileSizeMB} MB). Maksimum ukuran file adalah 25 MB. Gunakan video yang lebih pendek atau kompres file terlebih dahulu.`;
+      submitError.classList.remove('hidden');
+      setSubmitState('idle');
       return;
     }
 
