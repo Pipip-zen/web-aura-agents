@@ -65,7 +65,7 @@ export function subscribeToAuthState(callback) {
         try {
           await user.reload();
         } catch {
-          // Offline PWA launches should still use Firebase's cached user.
+          // Offline app launches should still use Firebase's cached user.
         }
       }
       callback(initializedAuth.currentUser, null);

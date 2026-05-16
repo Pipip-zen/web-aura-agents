@@ -12,14 +12,6 @@ import { renderUserClaims } from './screens/user_claims.js';
 import { fetchClaims } from './services/api_service.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
-  consumeInstallPromptEvent,
-  dismissInstallPrompt,
-  hasInstallPrompt,
-  isInstallDismissed,
-  isInstalled,
-  setupInstallPromptListeners
-} from './services/pwa_install_service.js';
-import {
   getUnreadClaimCount,
   markNotificationsSeen
 } from './services/notification_state.js';
@@ -107,41 +99,12 @@ function refreshCurrentRouteForConnectivity() {
   navigate(state.currentRoute);
 }
 
-function refreshInstallBanner() {
-  const installBanner = document.getElementById('install-banner');
-  const installTitle = document.getElementById('install-banner-title');
-  const installCopy = document.getElementById('install-banner-copy');
-  const installActionButton = document.getElementById('install-action-btn');
-  if (!installBanner || !installTitle || !installCopy || !installActionButton) return;
-
-  const shouldHide = isInstalled() || isInstallDismissed() || state.currentRoute === 'auth';
-  if (shouldHide) {
-    installBanner.classList.add('hidden');
-    return;
-  }
-
-  if (hasInstallPrompt()) {
-    installTitle.textContent = 'Install Aura Agent';
-    installCopy.textContent = 'Open claims faster from your home screen.';
-    installActionButton.textContent = 'Install';
-  } else {
-    installTitle.textContent = 'Add Aura Agent to your device';
-    installCopy.textContent = 'Use your browser menu to add this app to the home screen.';
-    installActionButton.textContent = 'Got it';
-  }
-
-  installBanner.classList.remove('hidden');
-}
-
 function initApp() {
   setupNavigation();
   setupTopBarActions();
-  setupInstallBannerActions();
   setupConnectivityState();
   setupDragScroll();
-  registerServiceWorker();
   renderAuthLoading();
-  setupInstallPromptListeners(refreshInstallBanner);
   subscribeToAuthState((user, error) => {
     state.authReady = true;
     state.authError = error;
@@ -158,7 +121,6 @@ function initApp() {
     setupNavigation();
     updateAccountUi();
     refreshNotificationIndicator();
-    refreshInstallBanner();
     updateConnectivityBanner();
 
     let targetRoute = user ? state.currentRoute : 'auth';
@@ -186,36 +148,6 @@ function setupConnectivityState() {
     refreshCurrentRouteForConnectivity();
   });
   updateConnectivityBanner();
-}
-
-function setupInstallBannerActions() {
-  const installDismissButton = document.getElementById('install-dismiss-btn');
-  const installActionButton = document.getElementById('install-action-btn');
-  const installBanner = document.getElementById('install-banner');
-  if (!installDismissButton || !installActionButton || !installBanner) return;
-
-  installDismissButton.addEventListener('click', () => {
-    dismissInstallPrompt();
-    refreshInstallBanner();
-  });
-
-  installActionButton.addEventListener('click', async () => {
-    if (!hasInstallPrompt()) {
-      dismissInstallPrompt();
-      refreshInstallBanner();
-      return;
-    }
-
-    const promptEvent = consumeInstallPromptEvent();
-    if (!promptEvent) return;
-
-    promptEvent.prompt();
-    const choice = await promptEvent.userChoice;
-    if (choice?.outcome !== 'accepted') {
-      dismissInstallPrompt();
-    }
-    refreshInstallBanner();
-  });
 }
 
 export function setupNavigation() {
@@ -449,14 +381,6 @@ export function resetDraftClaim() {
   clearDraftClaimPersistence();
 }
 
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  });
-}
-
 export function navigate(route, params = null) {
   if (route === 'auth') {
     updateLayoutForRoute(route);
@@ -524,7 +448,6 @@ export function navigate(route, params = null) {
   appContent.appendChild(screenContent);
 
   refreshNotificationIndicator();
-  refreshInstallBanner();
   updateConnectivityBanner();
 }
 
