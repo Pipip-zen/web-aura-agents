@@ -8,6 +8,7 @@ import { renderAuthScreen } from './screens/auth.js';
 import { renderOnboarding } from './screens/onboarding.js';
 import { renderSellerDashboard } from './screens/seller_dashboard.js';
 import { renderSellerClaimDetail } from './screens/seller_claim_detail.js';
+import { renderUserClaims } from './screens/user_claims.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   clearDraftClaimPersistence,
@@ -35,6 +36,7 @@ export const routes = {
   'seller_dashboard': { label: 'Seller Dashboard', icon: 'storefront', render: renderSellerDashboard, showNav: true },
   'evidence': { label: 'Create Claim', icon: 'add_circle', render: renderEvidence, showNav: true },
   'notifications': { label: 'Notifications', icon: 'notifications', render: renderNotifications, showNav: true },
+  'user_claims': { label: 'History', icon: 'receipt_long', render: renderUserClaims, showNav: true },
   'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false },
   'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false },
   'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false },
@@ -91,7 +93,7 @@ export function setupNavigation() {
 
     // Filter routes based on role
     if (role !== 'seller' && route === 'seller_dashboard') return;
-    if (role === 'seller' && (route === 'hub' || route === 'evidence')) return;
+    if (role === 'seller' && (route === 'hub' || route === 'evidence' || route === 'user_claims')) return;
 
     // Mobile nav
     const item = document.createElement('a');
