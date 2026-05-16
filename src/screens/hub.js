@@ -7,6 +7,7 @@ import {
   renderClaimCard,
   sortClaimsByUpdatedAt
 } from './claim_ui.js';
+import { renderCardSkeleton, renderNetworkState } from './ui_states.js';
 
 export function renderHub() {
   const container = document.createElement('div');
@@ -66,9 +67,7 @@ export function renderHub() {
           </button>
         </div>
         <div id="hub-claims-list" class="flex flex-col gap-sm">
-          <div class="glass-card rounded-xl p-md text-body-md text-on-surface-variant">
-            Loading live claims from backend...
-          </div>
+          ${renderCardSkeleton(2)}
         </div>
       </div>
 
@@ -139,16 +138,20 @@ export function renderHub() {
       claimsList.innerHTML = sortedClaims.slice(0, 4).map(renderClaimCard).join('');
     })
     .catch((error) => {
-      totalValue.textContent = 'Backend Offline';
+      console.warn('Failed to load dashboard claims', error);
+      totalValue.textContent = 'Belum tersambung';
       totalCaption.innerHTML = `
         <span class="material-symbols-outlined text-[18px]">wifi_off</span>
-        <span class="font-label-caps">Check API config</span>
+        <span class="font-label-caps">Coba lagi nanti</span>
       `;
       claimsList.innerHTML = `
-        <div class="glass-card rounded-xl border border-error/20 bg-error/5 p-md text-body-md text-on-surface-variant">
-          ${error.message || 'Unable to load live claims from backend.'}
-        </div>
+        ${renderNetworkState({
+          title: 'Klaim belum bisa dimuat',
+          body: 'Kami belum bisa mengambil daftar klaim terbaru. Periksa koneksi internet, lalu coba lagi.',
+          retryId: 'hub-retry-btn'
+        })}
       `;
+      claimsList.querySelector('#hub-retry-btn')?.addEventListener('click', () => navigate('hub'));
     });
 
   return container;

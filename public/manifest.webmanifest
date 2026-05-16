@@ -1,9 +1,13 @@
 {
   "name": "Aura Agent Demo",
   "short_name": "Aura Agent",
+  "id": "/",
   "description": "Live technical demo for end-to-end claim analysis with Aura Agent.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
+  "categories": ["productivity", "utilities"],
   "background_color": "#f9f9ff",
   "theme_color": "#4648d4",
   "icons": [

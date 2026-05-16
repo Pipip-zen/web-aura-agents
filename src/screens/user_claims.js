@@ -7,6 +7,7 @@ import {
   renderClaimCard,
   sortClaimsByUpdatedAt
 } from './claim_ui.js';
+import { renderCardSkeleton, renderNetworkState } from './ui_states.js';
 
 export function renderUserClaims() {
   const container = document.createElement('div');
@@ -53,9 +54,7 @@ export function renderUserClaims() {
         <span id="user-claims-caption" class="rounded-full bg-primary/10 px-3 py-1 text-label-sm text-primary">Loading</span>
       </div>
       <div id="user-claims-list" class="flex flex-col gap-sm">
-        <div class="glass-card rounded-xl p-md text-body-md text-on-surface-variant">
-          Loading claims from backend...
-        </div>
+        ${renderCardSkeleton(3)}
       </div>
     </section>
   `;
@@ -95,12 +94,16 @@ export function renderUserClaims() {
       claimsList.innerHTML = sortedClaims.map((claim) => renderClaimCard(claim, { showDate: true })).join('');
     })
     .catch((error) => {
-      caption.textContent = 'Offline';
+      console.warn('Failed to load claim history', error);
+      caption.textContent = 'Belum tersambung';
       claimsList.innerHTML = `
-        <div class="glass-card rounded-xl border border-error/20 bg-error/5 p-md text-body-md text-on-surface-variant">
-          ${error.message || 'Unable to load claims from backend.'}
-        </div>
+        ${renderNetworkState({
+          title: 'Riwayat klaim belum bisa dimuat',
+          body: 'Kami belum bisa mengambil riwayat klaim terbaru. Periksa koneksi internet, lalu coba lagi.',
+          retryId: 'user-claims-retry-btn'
+        })}
       `;
+      claimsList.querySelector('#user-claims-retry-btn')?.addEventListener('click', () => navigate('user_claims'));
     });
 
   return container;

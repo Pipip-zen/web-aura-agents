@@ -1,4 +1,4 @@
-import { state } from '../main.js';
+import { navigate, state } from '../main.js';
 import { fetchClaims } from '../services/api_service.js';
 import {
   formatCurrency,
@@ -7,6 +7,7 @@ import {
   sortClaimsByUpdatedAt,
   toTitleCase
 } from './claim_ui.js';
+import { renderCardSkeleton, renderNetworkState } from './ui_states.js';
 
 const tabs = [
   { key: 'all', label: 'All' },
@@ -181,9 +182,7 @@ export function renderNotifications() {
     </section>
     <nav id="notification-tabs" class="flex flex-wrap gap-2 p-1 bg-surface-container rounded-[1.25rem] mb-lg max-w-2xl"></nav>
     <div id="notifications-feed" class="grid gap-md">
-      <div class="glass-panel rounded-xl border border-outline-variant bg-white/70 p-md text-body-md text-on-surface-variant">
-        Loading claim notifications...
-      </div>
+      ${renderCardSkeleton(3)}
     </div>
     <div id="notifications-summary" class="p-md rounded-xl bg-gradient-to-br from-primary-container to-indigo-700 text-white shadow-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-md">
       <div class="flex-1">
@@ -191,8 +190,8 @@ export function renderNotifications() {
           <span class="material-symbols-outlined text-white" data-icon="sync">sync</span>
           <span class="font-label-caps uppercase tracking-widest opacity-90">Claim Activity</span>
         </div>
-        <h4 class="font-title-sm mb-base">Syncing with backend claim data</h4>
-        <p id="notifications-summary-copy" class="font-body-sm opacity-80">Checking your latest claim changes...</p>
+        <h4 class="font-title-sm mb-base">Mengambil kabar terbaru</h4>
+        <p id="notifications-summary-copy" class="font-body-sm opacity-80">Kami sedang memeriksa perubahan klaim terbaru.</p>
       </div>
       <div class="w-16 h-16 relative shrink-0">
         <svg class="w-full h-full transform -rotate-90">
@@ -239,21 +238,25 @@ export function renderNotifications() {
       const ringOffset = totalClaims ? Math.max(20, 176 - Math.round((activeClaimCount / totalClaims) * 176)) : 176;
 
       summaryCopy.textContent = totalClaims
-        ? `${activeClaimCount} of ${totalClaims} claims still need attention or are in progress.`
-        : 'No claim activity yet. Create a claim to populate notifications.';
+        ? `${activeClaimCount} dari ${totalClaims} klaim masih menunggu proses atau perlu ditinjau.`
+        : 'Belum ada aktivitas klaim. Notifikasi akan muncul setelah Anda membuat klaim.';
       summaryCount.textContent = `${totalClaims}`;
       summaryRing.setAttribute('stroke-dashoffset', String(ringOffset));
 
       render();
     })
     .catch((error) => {
-      summaryCopy.textContent = error.message || 'Unable to sync claim updates from backend.';
+      console.warn('Failed to load claim notifications', error);
+      summaryCopy.textContent = 'Kabar terbaru belum bisa dimuat. Periksa koneksi internet, lalu coba lagi.';
       feed.innerHTML = `
-        <div class="glass-panel rounded-xl border border-error/20 bg-error/5 p-md text-body-md text-on-surface-variant">
-          ${error.message || 'Unable to load notifications from backend.'}
-        </div>
+        ${renderNetworkState({
+          title: 'Notifikasi belum bisa dimuat',
+          body: 'Kami belum bisa mengambil notifikasi terbaru. Periksa koneksi internet, lalu coba lagi.',
+          retryId: 'notifications-retry-btn'
+        })}
       `;
       tabsContainer.innerHTML = tabs.map((tab) => renderTabButton(tab, activeTab)).join('');
+      feed.querySelector('#notifications-retry-btn')?.addEventListener('click', () => navigate('notifications'));
     });
 
   tabsContainer.addEventListener('click', (event) => {

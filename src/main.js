@@ -12,6 +12,18 @@ import { renderUserClaims } from './screens/user_claims.js';
 import { fetchClaims } from './services/api_service.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
+  consumeInstallPromptEvent,
+  dismissInstallPrompt,
+  hasInstallPrompt,
+  isInstallDismissed,
+  isInstalled,
+  setupInstallPromptListeners
+} from './services/pwa_install_service.js';
+import {
+  getUnreadClaimCount,
+  markNotificationsSeen
+} from './services/notification_state.js';
+import {
   clearDraftClaimPersistence,
   DEFAULT_DRAFT_CLAIM,
   loadDraftClaim,
@@ -44,22 +56,6 @@ export const routes = {
   'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false }
 };
 
-const NOTIFICATION_SEEN_STORAGE_KEY = 'aura-notifications-seen-v1';
-
-function getNotificationSeenKey(userId) {
-  return `${NOTIFICATION_SEEN_STORAGE_KEY}:${userId}`;
-}
-
-function getNotificationSeenAt(userId) {
-  if (!userId) return '';
-  return localStorage.getItem(getNotificationSeenKey(userId)) || '';
-}
-
-function markNotificationsSeen(userId) {
-  if (!userId) return;
-  localStorage.setItem(getNotificationSeenKey(userId), new Date().toISOString());
-}
-
 async function refreshNotificationIndicator() {
   const notificationsButton = document.getElementById('notifications-button');
   const notificationsBadge = document.getElementById('notifications-badge');
@@ -74,12 +70,7 @@ async function refreshNotificationIndicator() {
 
   try {
     const claims = await fetchClaims(state.currentUserId);
-    const seenAt = getNotificationSeenAt(state.currentUserId);
-    const seenTimestamp = seenAt ? new Date(seenAt).getTime() : 0;
-    const unreadCount = claims.filter((claim) => {
-      const updatedTimestamp = new Date(claim.updated_at || claim.created_at || 0).getTime();
-      return updatedTimestamp > seenTimestamp;
-    }).length;
+    const unreadCount = getUnreadClaimCount(claims, state.currentUserId);
 
     if (unreadCount > 0) {
       notificationsBadge.textContent = unreadCount > 99 ? '99+' : `${unreadCount}`;
@@ -98,12 +89,59 @@ async function refreshNotificationIndicator() {
   }
 }
 
+function updateConnectivityBanner() {
+  const offlineBanner = document.getElementById('offline-banner');
+  if (!offlineBanner) return;
+
+  const isOffline = navigator.onLine === false;
+  offlineBanner.classList.toggle('hidden', !isOffline);
+
+  if (!isOffline) {
+    refreshNotificationIndicator();
+  }
+}
+
+function refreshCurrentRouteForConnectivity() {
+  if (!state.authReady || !state.currentUser) return;
+  if (!['hub', 'user_claims', 'notifications'].includes(state.currentRoute)) return;
+  navigate(state.currentRoute);
+}
+
+function refreshInstallBanner() {
+  const installBanner = document.getElementById('install-banner');
+  const installTitle = document.getElementById('install-banner-title');
+  const installCopy = document.getElementById('install-banner-copy');
+  const installActionButton = document.getElementById('install-action-btn');
+  if (!installBanner || !installTitle || !installCopy || !installActionButton) return;
+
+  const shouldHide = isInstalled() || isInstallDismissed() || state.currentRoute === 'auth';
+  if (shouldHide) {
+    installBanner.classList.add('hidden');
+    return;
+  }
+
+  if (hasInstallPrompt()) {
+    installTitle.textContent = 'Install Aura Agent';
+    installCopy.textContent = 'Open claims faster from your home screen.';
+    installActionButton.textContent = 'Install';
+  } else {
+    installTitle.textContent = 'Add Aura Agent to your device';
+    installCopy.textContent = 'Use your browser menu to add this app to the home screen.';
+    installActionButton.textContent = 'Got it';
+  }
+
+  installBanner.classList.remove('hidden');
+}
+
 function initApp() {
   setupNavigation();
   setupTopBarActions();
+  setupInstallBannerActions();
+  setupConnectivityState();
   setupDragScroll();
   registerServiceWorker();
   renderAuthLoading();
+  setupInstallPromptListeners(refreshInstallBanner);
   subscribeToAuthState((user, error) => {
     state.authReady = true;
     state.authError = error;
@@ -120,6 +158,8 @@ function initApp() {
     setupNavigation();
     updateAccountUi();
     refreshNotificationIndicator();
+    refreshInstallBanner();
+    updateConnectivityBanner();
 
     let targetRoute = user ? state.currentRoute : 'auth';
     if (user) {
@@ -133,6 +173,48 @@ function initApp() {
       }
     }
     navigate(targetRoute);
+  });
+}
+
+function setupConnectivityState() {
+  window.addEventListener('online', () => {
+    updateConnectivityBanner();
+    refreshCurrentRouteForConnectivity();
+  });
+  window.addEventListener('offline', () => {
+    updateConnectivityBanner();
+    refreshCurrentRouteForConnectivity();
+  });
+  updateConnectivityBanner();
+}
+
+function setupInstallBannerActions() {
+  const installDismissButton = document.getElementById('install-dismiss-btn');
+  const installActionButton = document.getElementById('install-action-btn');
+  const installBanner = document.getElementById('install-banner');
+  if (!installDismissButton || !installActionButton || !installBanner) return;
+
+  installDismissButton.addEventListener('click', () => {
+    dismissInstallPrompt();
+    refreshInstallBanner();
+  });
+
+  installActionButton.addEventListener('click', async () => {
+    if (!hasInstallPrompt()) {
+      dismissInstallPrompt();
+      refreshInstallBanner();
+      return;
+    }
+
+    const promptEvent = consumeInstallPromptEvent();
+    if (!promptEvent) return;
+
+    promptEvent.prompt();
+    const choice = await promptEvent.userChoice;
+    if (choice?.outcome !== 'accepted') {
+      dismissInstallPrompt();
+    }
+    refreshInstallBanner();
   });
 }
 
@@ -308,9 +390,12 @@ function updateLayoutForRoute(route) {
 
 function renderAuthLoading() {
   const appContent = document.getElementById('app-content');
+  const offlineCopy = navigator.onLine === false
+    ? 'Anda sedang offline. Kami mencoba membuka sesi terakhir...'
+    : 'Memeriksa sesi masuk...';
   appContent.innerHTML = `
     <div class="flex min-h-[calc(100dvh-120px)] items-center justify-center text-body-md text-on-surface-variant">
-      Checking secure session...
+      ${offlineCopy}
     </div>
   `;
   updateLayoutForRoute('auth');
@@ -330,7 +415,9 @@ function updateAccountUi() {
   notificationsButton.title = user ? 'Open notifications' : 'Login required';
   logoutButton.title = user ? 'Logout' : 'Login required';
   logoutButton.classList.toggle('hidden', !user);
-  notificationsBadge.classList.toggle('hidden', !user);
+  if (!user) {
+    notificationsBadge.classList.add('hidden');
+  }
 
   const initial = (user?.email || 'A').trim().charAt(0).toUpperCase();
   accountAvatar.innerHTML = `
@@ -437,6 +524,8 @@ export function navigate(route, params = null) {
   appContent.appendChild(screenContent);
 
   refreshNotificationIndicator();
+  refreshInstallBanner();
+  updateConnectivityBanner();
 }
 
 // Start app

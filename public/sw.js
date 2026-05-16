@@ -1,12 +1,22 @@
-const CACHE_NAME = 'aura-agent-demo-v1';
+const CACHE_VERSION = 'v2';
+const CACHE_NAME = `aura-agent-shell-${CACHE_VERSION}`;
 const SHELL_URLS = [
   '/',
+  '/offline.html',
   '/manifest.webmanifest',
   '/runtime-config.js',
   '/favicon.svg',
   '/icon-192.png',
   '/icon-512.png'
 ];
+
+function isApiRequest(url) {
+  return url.origin === self.location.origin && url.pathname.startsWith('/api/');
+}
+
+function isStaticAssetRequest(request) {
+  return ['style', 'script', 'font', 'image', 'manifest'].includes(request.destination);
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -26,7 +36,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
   const requestUrl = new URL(event.request.url);
-  if (requestUrl.origin !== self.location.origin) return;
+  if (isApiRequest(requestUrl)) return;
 
   if (event.request.mode === 'navigate') {
     event.respondWith(
@@ -36,24 +46,33 @@ self.addEventListener('fetch', (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put('/', clone));
           return response;
         })
-        .catch(() => caches.match('/'))
+        .catch(async () => (await caches.match('/')) || caches.match('/offline.html'))
     );
     return;
   }
+
+  if (requestUrl.origin !== self.location.origin && !isStaticAssetRequest(event.request)) return;
 
   event.respondWith(
     caches.match(event.request).then((cached) => {
       if (cached) return cached;
 
-      return fetch(event.request).then((response) => {
-        if (!response || response.status !== 200 || response.type !== 'basic') {
-          return response;
-        }
+      return fetch(event.request)
+        .then((response) => {
+          if (!response || (response.status !== 200 && response.type !== 'opaque')) {
+            return response;
+          }
 
-        const clone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-        return response;
-      });
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          return response;
+        })
+        .catch(() => {
+          if (event.request.destination === 'document') {
+            return caches.match('/offline.html');
+          }
+          return Response.error();
+        });
     })
   );
 });
