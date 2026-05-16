@@ -1,47 +1,139 @@
-const notifications = [
-  {
-    id: 'approved-1',
-    type: 'approved',
-    title: 'Claim Approved!',
-    time: '2m ago',
-    body: 'Your claim #8821 for vehicle repair has been successfully verified and approved for payout.',
-    accent: 'bg-secondary shadow-[0_0_10px_#006e2a]',
-    iconWrap: 'bg-secondary-container',
-    iconColor: 'text-on-secondary-container',
-    icon: 'check_circle',
-    unread: true
-  },
-  {
-    id: 'analysis-1',
-    type: 'processing',
-    title: 'AI Analysis Complete',
-    time: '1h ago',
-    body: 'AURA has finished scanning your uploaded documents for the property damage claim.',
-    accent: 'bg-primary',
-    iconWrap: 'bg-primary-fixed',
-    iconColor: 'text-primary',
-    icon: 'notifications',
-    unread: false
-  },
-  {
-    id: 'processing-1',
-    type: 'processing',
-    title: 'Claim Processing',
-    time: '5h ago',
-    body: 'Your medical reimbursement request is currently being reviewed by our neural engine.',
-    accent: 'bg-tertiary-container',
-    iconWrap: 'bg-tertiary-fixed',
-    iconColor: 'text-tertiary',
-    icon: 'schedule',
-    unread: false
-  }
-];
+import { state } from '../main.js';
+import { fetchClaims } from '../services/api_service.js';
+import {
+  formatCurrency,
+  getClaimAmount,
+  normalizeClaimStatus,
+  sortClaimsByUpdatedAt,
+  toTitleCase
+} from './claim_ui.js';
 
 const tabs = [
   { key: 'all', label: 'All' },
   { key: 'approved', label: 'Approved' },
-  { key: 'processing', label: 'Processing' }
+  { key: 'review', label: 'Review' },
+  { key: 'rejected', label: 'Rejected' }
 ];
+
+function formatRelativeTime(value) {
+  if (!value) return 'Just now';
+
+  const timestamp = new Date(value).getTime();
+  if (Number.isNaN(timestamp)) return 'Just now';
+
+  const diffMs = Date.now() - timestamp;
+  if (diffMs <= 0) return 'Just now';
+
+  const minutes = Math.floor(diffMs / 60000);
+  if (minutes < 1) return 'Just now';
+  if (minutes < 60) return `${minutes}m ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(value).toLocaleDateString('id-ID', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+}
+
+function getNotificationMeta(claim) {
+  const normalizedStatus = normalizeClaimStatus(claim.status);
+  const claimTypeLabel = toTitleCase(claim.claim_type);
+  const claimLabel = claim.id ? `#${String(claim.id).slice(0, 8)}` : claimTypeLabel;
+  const amount = formatCurrency(getClaimAmount(claim));
+  const explanation = claim.ai_explanation?.trim();
+
+  if (normalizedStatus === 'approved') {
+    return {
+      type: 'approved',
+      title: 'Claim Approved',
+      accent: 'bg-secondary shadow-[0_0_10px_rgba(0,110,42,0.35)]',
+      iconWrap: 'bg-secondary-container',
+      iconColor: 'text-on-secondary-container',
+      icon: 'check_circle',
+      unread: true,
+      body: `${claimLabel} for ${claimTypeLabel} was approved with refund ${amount}.`
+    };
+  }
+
+  if (normalizedStatus === 'review') {
+    return {
+      type: 'review',
+      title: 'Manual Review Needed',
+      accent: 'bg-amber-500',
+      iconWrap: 'bg-amber-100',
+      iconColor: 'text-amber-700',
+      icon: 'shield',
+      unread: true,
+      body: explanation || `${claimLabel} for ${claimTypeLabel} needs manual review from the seller.`
+    };
+  }
+
+  if (normalizedStatus === 'rejected') {
+    return {
+      type: 'rejected',
+      title: 'Claim Rejected',
+      accent: 'bg-error shadow-[0_0_10px_rgba(186,26,26,0.25)]',
+      iconWrap: 'bg-error-container/80',
+      iconColor: 'text-error',
+      icon: 'block',
+      unread: true,
+      body: explanation || `${claimLabel} for ${claimTypeLabel} was rejected after review.`
+    };
+  }
+
+  if (claim.status === 'pending') {
+    return {
+      type: 'processing',
+      title: 'Claim Submitted',
+      accent: 'bg-primary',
+      iconWrap: 'bg-primary-fixed',
+      iconColor: 'text-primary',
+      icon: 'notifications',
+      unread: false,
+      body: `${claimLabel} for ${claimTypeLabel} has been submitted and is waiting for analysis.`
+    };
+  }
+
+  if (claim.status === 'failed') {
+    return {
+      type: 'processing',
+      title: 'Analysis Failed',
+      accent: 'bg-error',
+      iconWrap: 'bg-error-container/80',
+      iconColor: 'text-error',
+      icon: 'error',
+      unread: true,
+      body: explanation || `${claimLabel} for ${claimTypeLabel} could not be processed automatically.`
+    };
+  }
+
+  return {
+    type: 'processing',
+    title: 'Analysis In Progress',
+    accent: 'bg-primary',
+    iconWrap: 'bg-primary-fixed',
+    iconColor: 'text-primary',
+    icon: 'schedule',
+    unread: false,
+    body: `${claimLabel} for ${claimTypeLabel} is at ${toTitleCase(claim.current_step || claim.status, 'Processing')}.`
+  };
+}
+
+function toNotificationItem(claim) {
+  const meta = getNotificationMeta(claim);
+
+  return {
+    id: `claim-${claim.id || claim.claim_id || claim.updated_at || claim.created_at || 'unknown'}`,
+    time: formatRelativeTime(claim.updated_at || claim.created_at),
+    ...meta
+  };
+}
 
 function renderNotificationCard(item) {
   return `
@@ -80,42 +172,50 @@ export function renderNotifications() {
   container.className = 'w-full pb-6';
 
   let activeTab = 'all';
+  let notificationItems = [];
 
   container.innerHTML = `
     <section class="mb-lg">
       <h2 class="font-display-lg text-display-lg text-on-surface">Notifications</h2>
-      <p class="font-body-md text-on-surface-variant mt-xs">Stay updated with your claim status and AI insights.</p>
+      <p class="font-body-md text-on-surface-variant mt-xs">Live updates generated from your current claims.</p>
     </section>
-    <nav id="notification-tabs" class="flex flex-wrap gap-2 p-1 bg-surface-container rounded-[1.25rem] mb-lg max-w-md mx-auto md:mx-0"></nav>
-    <div id="notifications-feed" class="grid gap-md"></div>
-    <div class="p-md rounded-xl bg-gradient-to-br from-primary-container to-indigo-700 text-white shadow-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-md">
+    <nav id="notification-tabs" class="flex flex-wrap gap-2 p-1 bg-surface-container rounded-[1.25rem] mb-lg max-w-2xl"></nav>
+    <div id="notifications-feed" class="grid gap-md">
+      <div class="glass-panel rounded-xl border border-outline-variant bg-white/70 p-md text-body-md text-on-surface-variant">
+        Loading claim notifications...
+      </div>
+    </div>
+    <div id="notifications-summary" class="p-md rounded-xl bg-gradient-to-br from-primary-container to-indigo-700 text-white shadow-xl flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mt-md">
       <div class="flex-1">
         <div class="flex items-center gap-2 mb-xs">
-          <span class="material-symbols-outlined text-white" data-icon="auto_awesome">auto_awesome</span>
-          <span class="font-label-caps uppercase tracking-widest opacity-90">Intelligence Layer</span>
+          <span class="material-symbols-outlined text-white" data-icon="sync">sync</span>
+          <span class="font-label-caps uppercase tracking-widest opacity-90">Claim Activity</span>
         </div>
-        <h4 class="font-title-sm mb-base">Real-time claim updates</h4>
-        <p class="font-body-sm opacity-80">AURA AI is monitoring active claims in the background to ensure lightning-fast processing.</p>
+        <h4 class="font-title-sm mb-base">Syncing with backend claim data</h4>
+        <p id="notifications-summary-copy" class="font-body-sm opacity-80">Checking your latest claim changes...</p>
       </div>
       <div class="w-16 h-16 relative shrink-0">
         <svg class="w-full h-full transform -rotate-90">
           <circle class="text-white/20" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-width="4"></circle>
-          <circle class="text-secondary-fixed" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="176" stroke-dashoffset="44" stroke-width="4"></circle>
+          <circle id="notifications-summary-ring" class="text-secondary-fixed" cx="32" cy="32" fill="transparent" r="28" stroke="currentColor" stroke-dasharray="176" stroke-dashoffset="176" stroke-width="4"></circle>
         </svg>
-        <span class="absolute inset-0 flex items-center justify-center font-label-caps">75%</span>
+        <span id="notifications-summary-count" class="absolute inset-0 flex items-center justify-center font-label-caps">0</span>
       </div>
     </div>
   `;
 
   const tabsContainer = container.querySelector('#notification-tabs');
   const feed = container.querySelector('#notifications-feed');
+  const summaryCopy = container.querySelector('#notifications-summary-copy');
+  const summaryCount = container.querySelector('#notifications-summary-count');
+  const summaryRing = container.querySelector('#notifications-summary-ring');
 
   const render = () => {
     tabsContainer.innerHTML = tabs.map((tab) => renderTabButton(tab, activeTab)).join('');
 
     const filtered = activeTab === 'all'
-      ? notifications
-      : notifications.filter((item) => item.type === activeTab);
+      ? notificationItems
+      : notificationItems.filter((item) => item.type === activeTab);
 
     feed.innerHTML = filtered.length
       ? filtered.map(renderNotificationCard).join('')
@@ -126,6 +226,36 @@ export function renderNotifications() {
       `;
   };
 
+  fetchClaims(state.currentUserId)
+    .then((claims) => {
+      const sortedClaims = sortClaimsByUpdatedAt(claims);
+      notificationItems = sortedClaims.map(toNotificationItem);
+
+      const activeClaimCount = sortedClaims.filter((claim) => {
+        const normalizedStatus = normalizeClaimStatus(claim.status);
+        return normalizedStatus === 'review' || normalizedStatus === 'processing';
+      }).length;
+      const totalClaims = sortedClaims.length;
+      const ringOffset = totalClaims ? Math.max(20, 176 - Math.round((activeClaimCount / totalClaims) * 176)) : 176;
+
+      summaryCopy.textContent = totalClaims
+        ? `${activeClaimCount} of ${totalClaims} claims still need attention or are in progress.`
+        : 'No claim activity yet. Create a claim to populate notifications.';
+      summaryCount.textContent = `${totalClaims}`;
+      summaryRing.setAttribute('stroke-dashoffset', String(ringOffset));
+
+      render();
+    })
+    .catch((error) => {
+      summaryCopy.textContent = error.message || 'Unable to sync claim updates from backend.';
+      feed.innerHTML = `
+        <div class="glass-panel rounded-xl border border-error/20 bg-error/5 p-md text-body-md text-on-surface-variant">
+          ${error.message || 'Unable to load notifications from backend.'}
+        </div>
+      `;
+      tabsContainer.innerHTML = tabs.map((tab) => renderTabButton(tab, activeTab)).join('');
+    });
+
   tabsContainer.addEventListener('click', (event) => {
     const button = event.target.closest('.notification-tab');
     if (!button || !tabsContainer.contains(button)) return;
@@ -134,6 +264,5 @@ export function renderNotifications() {
     render();
   });
 
-  render();
   return container;
 }
