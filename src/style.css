@@ -8,8 +8,8 @@
   --border-color: #334155;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
-  --top-bar-height: 88px;
-  --bottom-nav-height: calc(88px + env(safe-area-inset-bottom));
+  --top-bar-height: calc(88px + env(safe-area-inset-top));
+  --bottom-nav-height: calc(84px + env(safe-area-inset-bottom));
   --content-bottom-padding: calc(var(--bottom-nav-height) + 1rem);
   --content-bottom-padding-no-nav: calc(1.5rem + env(safe-area-inset-bottom));
 }
@@ -70,13 +70,15 @@ body,
   bottom: 0;
   left: 0;
   right: 0;
-  height: 65px;
+  height: var(--bottom-nav-height);
   background: rgba(30, 41, 59, 0.8);
   backdrop-filter: blur(12px);
   border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-around;
-  align-items: center;
+  align-items: flex-start;
+  padding-top: 0.7rem;
+  padding-bottom: calc(0.45rem + env(safe-area-inset-bottom));
   z-index: 1000;
 }
 
@@ -92,12 +94,15 @@ body,
   color: var(--text-muted);
   text-decoration: none;
   font-size: 0.75rem;
-  gap: 4px;
+  gap: 3px;
   cursor: pointer;
   transition: all 0.2s ease;
   width: 100%;
-  height: 100%;
-  min-height: 52px;
+  height: auto;
+  min-height: 0;
+  padding: 0.1rem 0;
+  text-align: center;
+  line-height: 1.1;
 }
 
 .nav-item.active {
@@ -106,6 +111,17 @@ body,
 
 .nav-icon {
   font-size: 1.25rem;
+}
+
+.nav-item .material-symbols-outlined {
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.nav-item span:last-child {
+  display: block;
+  font-size: 0.68rem;
+  line-height: 1;
 }
 
 img,
@@ -191,7 +207,8 @@ h1.page-title {
 
 @media (max-width: 640px) {
   :root {
-    --top-bar-height: 84px;
+    --top-bar-height: calc(82px + env(safe-area-inset-top));
+    --bottom-nav-height: calc(82px + env(safe-area-inset-bottom));
   }
 
   #app-content {
