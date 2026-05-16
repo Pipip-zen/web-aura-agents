@@ -1,6 +1,15 @@
 import { getSellerClaimDetail, submitSellerDecision, resolveEvidenceUrl } from '../services/api_service.js';
 import { navigate } from '../main.js';
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 
 function getSellerClaimUiState(detail) {
   const sellerDecision = detail?.seller_decision?.decision || detail?.seller_decision;

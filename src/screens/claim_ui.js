@@ -102,16 +102,24 @@ export function renderClaimCard(claim, options = {}) {
   const { showDate = false } = options;
   const amount = getClaimAmount(claim);
   const meta = getStatusMeta(claim.status);
+  const normalizedStatus = normalizeClaimStatus(claim.status);
   const claimTypeLabel = toTitleCase(claim.claim_type);
   const stepLabel = getClaimStepLabel(claim);
   const dateLabel = claim.created_at
     ? new Date(claim.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
     : 'Claim Record';
     
-  const showExplanation = claim.ai_explanation && normalizeClaimStatus(claim.status) === 'approved';
+  const showExplanation = Boolean(claim.ai_explanation?.trim());
   const explanationSnippet = showExplanation 
     ? (claim.ai_explanation.length > 80 ? claim.ai_explanation.substring(0, 80) + '...' : claim.ai_explanation)
     : null;
+  const noteAccent = normalizedStatus === 'approved'
+    ? 'bg-secondary text-secondary'
+    : normalizedStatus === 'rejected'
+      ? 'bg-error text-error'
+      : normalizedStatus === 'review'
+        ? 'bg-amber-500 text-amber-700'
+        : 'bg-primary text-primary';
 
   return `
     <div class="glass-card rounded-xl border-l-4 ${meta.border} p-md flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -128,8 +136,8 @@ export function renderClaimCard(claim, options = {}) {
           ${showDate ? `<p class="mt-2 text-label-sm text-on-surface-variant">Submitted ${dateLabel}</p>` : ''}
           ${showExplanation ? `
             <div class="mt-3 p-3 rounded-lg bg-surface-container-low border border-outline-variant/30 relative">
-              <div class="absolute -left-1.5 top-3 w-1 h-8 bg-secondary rounded-r-full opacity-50"></div>
-              <p class="text-label-sm font-semibold text-secondary mb-1 flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">auto_awesome</span> AI Note</p>
+              <div class="absolute -left-1.5 top-3 w-1 h-8 rounded-r-full opacity-60 ${noteAccent.split(' ')[0]}"></div>
+              <p class="text-label-sm font-semibold mb-1 flex items-center gap-1 ${noteAccent.split(' ')[1]}"><span class="material-symbols-outlined text-[12px]">auto_awesome</span> AI Note</p>
               <p class="text-body-sm text-on-surface-variant italic leading-snug">"${explanationSnippet}"</p>
             </div>
           ` : ''}

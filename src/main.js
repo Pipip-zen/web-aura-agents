@@ -39,22 +39,31 @@ export const state = {
 
 // Routes definition
 export const routes = {
-  'hub': { label: 'Hub', icon: 'grid_view', render: renderHub, showNav: true },
-  'seller_dashboard': { label: 'Seller Dashboard', icon: 'storefront', render: renderSellerDashboard, showNav: true },
-  'evidence': { label: 'Create Claim', icon: 'add_circle', render: renderEvidence, showNav: true },
-  'notifications': { label: 'Notifications', icon: 'notifications', render: renderNotifications, showNav: true },
-  'user_claims': { label: 'History', icon: 'receipt_long', render: renderUserClaims, showNav: true },
-  'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false },
-  'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false },
-  'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false },
-  'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false },
-  'user_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderUserClaimDetail, showNav: false }
+  'hub': { label: 'Hub', icon: 'grid_view', render: renderHub, showNav: true, showInNav: true },
+  'seller_dashboard': { label: 'Seller Dashboard', icon: 'storefront', render: renderSellerDashboard, showNav: true, showInNav: true },
+  'evidence': { label: 'Create Claim', icon: 'add_circle', render: renderEvidence, showNav: true, showInNav: true },
+  'notifications': { label: 'Notifications', icon: 'notifications', render: renderNotifications, showNav: true, showInNav: true },
+  'user_claims': { label: 'History', icon: 'receipt_long', render: renderUserClaims, showNav: true, showInNav: true },
+  'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false, showInNav: false },
+  'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false, showInNav: false },
+  'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false, showInNav: false },
+  'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: true, showInNav: false },
+  'user_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderUserClaimDetail, showNav: true, showInNav: false }
 };
 
 async function refreshNotificationIndicator() {
   const notificationsButton = document.getElementById('notifications-button');
   const notificationsBadge = document.getElementById('notifications-badge');
   if (!notificationsButton || !notificationsBadge) return;
+  const role = localStorage.getItem('aura_user_role') || 'buyer';
+
+  if (role === 'seller') {
+    notificationsButton.classList.add('hidden');
+    notificationsBadge.classList.add('hidden');
+    return;
+  }
+
+  notificationsButton.classList.remove('hidden');
 
   if (!state.currentUser || !state.currentUserId) {
     notificationsBadge.classList.add('hidden');
@@ -175,11 +184,11 @@ export function setupNavigation() {
   const role = localStorage.getItem('aura_user_role') || 'buyer';
 
   Object.keys(routes).forEach(route => {
-    if (!routes[route].showNav) return;
+    if (!routes[route].showInNav) return;
 
     // Filter routes based on role
     if (role !== 'seller' && route === 'seller_dashboard') return;
-    if (role === 'seller' && (route === 'hub' || route === 'evidence' || route === 'user_claims')) return;
+    if (role === 'seller' && route !== 'seller_dashboard') return;
 
     // Mobile nav
     const item = document.createElement('a');
@@ -358,11 +367,14 @@ function updateAccountUi() {
   if (!accountAvatar || !notificationsButton || !notificationsBadge || !logoutButton) return;
 
   const user = state.currentUser;
-  notificationsButton.disabled = !user;
+  const role = localStorage.getItem('aura_user_role') || 'buyer';
+  const showNotifications = Boolean(user) && role !== 'seller';
+  notificationsButton.disabled = !showNotifications;
   logoutButton.disabled = !user;
-  notificationsButton.title = user ? 'Open notifications' : 'Login required';
+  notificationsButton.title = showNotifications ? 'Open notifications' : 'Notifications unavailable';
   logoutButton.title = user ? 'Logout' : 'Login required';
   logoutButton.classList.toggle('hidden', !user);
+  notificationsButton.classList.toggle('hidden', !showNotifications);
   if (!user) {
     notificationsBadge.classList.add('hidden');
   }
