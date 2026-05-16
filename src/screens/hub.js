@@ -1,4 +1,4 @@
-import { navigate, state } from '../main.js';
+import { navigate, startNewClaim, state } from '../main.js';
 import { fetchClaims } from '../services/api_service.js';
 import {
   formatCurrency,
@@ -99,7 +99,7 @@ export function renderHub() {
   const reviewMetric = container.querySelector('#hub-metric-review');
   const rejectedMetric = container.querySelector('#hub-metric-rejected');
 
-  const goToCreate = () => navigate('evidence');
+  const goToCreate = () => startNewClaim();
   btn?.addEventListener('click', goToCreate);
   secondaryCreateButton?.addEventListener('click', goToCreate);
   viewAllButton?.addEventListener('click', () => navigate('user_claims'));

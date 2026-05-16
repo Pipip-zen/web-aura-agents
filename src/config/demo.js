@@ -3,7 +3,6 @@ export const CLAIM_DRAFT_STORAGE_KEY = 'aura-demo-claim-draft-v1';
 export const DEFAULT_DRAFT_CLAIM = {
   claimType: 'product_defect',
   textDescription: '',
-  voiceDescription: '',
   evidenceFile: null,
   evidencePreviewName: '',
   evidencePreviewUrl: '',
@@ -40,7 +39,6 @@ export function persistDraftClaim(draftClaim) {
     JSON.stringify({
       claimType: draftClaim.claimType,
       textDescription: draftClaim.textDescription,
-      voiceDescription: draftClaim.voiceDescription,
       evidencePreviewName: draftClaim.evidencePreviewName,
       itemValue: draftClaim.itemValue,
       refundAmount: draftClaim.refundAmount

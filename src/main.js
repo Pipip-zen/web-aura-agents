@@ -200,6 +200,10 @@ export function setupNavigation() {
     `;
     item.addEventListener('click', (e) => {
       e.preventDefault();
+      if (route === 'evidence') {
+        startNewClaim();
+        return;
+      }
       navigate(route);
     });
     navContainer.appendChild(item);
@@ -211,6 +215,10 @@ export function setupNavigation() {
     dItem.innerText = routes[route].label;
     dItem.addEventListener('click', (e) => {
       e.preventDefault();
+      if (route === 'evidence') {
+        startNewClaim();
+        return;
+      }
       navigate(route);
     });
     desktopContainer.appendChild(dItem);
@@ -411,6 +419,13 @@ export function resetDraftClaim() {
     ...DEFAULT_DRAFT_CLAIM
   };
   clearDraftClaimPersistence();
+}
+
+export function startNewClaim() {
+  state.currentClaim = null;
+  state.currentClaimStatus = null;
+  resetDraftClaim();
+  navigate('evidence');
 }
 
 export function navigate(route, params = null) {
