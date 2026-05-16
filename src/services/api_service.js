@@ -80,7 +80,7 @@ export async function resolveEvidenceUrl(evidenceUrl) {
 
   // Already a blob or data URL — use directly
   if (evidenceUrl.startsWith('blob:') || evidenceUrl.startsWith('data:')) {
-    return evidenceUrl;
+    return { url: evidenceUrl, type: evidenceUrl.startsWith('data:video') ? 'video/mp4' : 'image/jpeg' };
   }
 
   // Build absolute URL: relative paths like /api/v1/upload/.../view need the backend origin
@@ -98,7 +98,7 @@ export async function resolveEvidenceUrl(evidenceUrl) {
     const res = await fetch(absoluteUrl, { headers });
     if (!res.ok) return null;
     const blob = await res.blob();
-    return URL.createObjectURL(blob);
+    return { url: URL.createObjectURL(blob), type: blob.type };
   } catch {
     return null;
   }

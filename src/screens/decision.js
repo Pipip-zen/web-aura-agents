@@ -262,11 +262,15 @@ export function renderDecision() {
   // (img tags can't send Authorization headers, so we fetch + blob it)
   const rawUrl = claim?.evidence_url || state.draftClaim?.evidencePreviewUrl || '';
   if (rawUrl) {
-    resolveEvidenceUrl(rawUrl).then(blobUrl => {
-      if (!blobUrl) return;
+    resolveEvidenceUrl(rawUrl).then(evidenceData => {
+      if (!evidenceData) return;
       const slot = container.querySelector('#evidence-slot');
       if (slot) {
-        slot.outerHTML = `<img src="${blobUrl}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+        if (evidenceData.type?.startsWith('video/')) {
+          slot.outerHTML = `<video src="${evidenceData.url}" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-black/10" muted></video>`;
+        } else {
+          slot.outerHTML = `<img src="${evidenceData.url}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+        }
       }
       setCurrentClaim({ ...claim, evidence_url: rawUrl });
     }).catch(() => {});
@@ -275,11 +279,15 @@ export function renderDecision() {
     getClaim(claim.id).then(async freshClaim => {
       const url = freshClaim?.evidence_url;
       if (!url) return;
-      const blobUrl = await resolveEvidenceUrl(url);
-      if (!blobUrl) return;
+      const evidenceData = await resolveEvidenceUrl(url);
+      if (!evidenceData) return;
       const slot = container.querySelector('#evidence-slot');
       if (slot) {
-        slot.outerHTML = `<img src="${blobUrl}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+        if (evidenceData.type?.startsWith('video/')) {
+          slot.outerHTML = `<video src="${evidenceData.url}" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-black/10" muted></video>`;
+        } else {
+          slot.outerHTML = `<img src="${evidenceData.url}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+        }
       }
       setCurrentClaim({ ...claim, evidence_url: url });
     }).catch(() => {});

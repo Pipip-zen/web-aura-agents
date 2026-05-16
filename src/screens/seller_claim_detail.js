@@ -81,7 +81,7 @@ export function renderSellerClaimDetail(claimId) {
       const { created_at, customer_reason, ai_analysis, seller_decision } = detail;
       // Resolve through authenticated backend proxy -> blob URL for <img src>
       const rawEvidenceUrl = detail?.evidence_url || detail?.file_urls?.[0] || '';
-      const evidenceUrl = await resolveEvidenceUrl(rawEvidenceUrl);
+      const evidenceData = await resolveEvidenceUrl(rawEvidenceUrl);
       const sellerState = getSellerClaimUiState(detail);
       const hasDecision = !!seller_decision;
       const isReviewable = !hasDecision && sellerState.reviewable;
@@ -112,9 +112,11 @@ export function renderSellerClaimDetail(claimId) {
 
               <div>
                 <p class="text-label-sm text-on-surface-variant mb-2">Evidence Attachment</p>
-                ${evidenceUrl ? `
+                ${evidenceData ? `
                   <div class="overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-variant/20">
-                    <img src="${evidenceUrl}" alt="Evidence" class="w-full h-auto max-h-64 object-contain bg-surface-variant/20">
+                    ${evidenceData.type?.startsWith('video/')
+                      ? `<video src="${escapeHtml(evidenceData.url)}" controls class="w-full h-auto max-h-64 object-contain bg-black/10"></video>`
+                      : `<img src="${escapeHtml(evidenceData.url)}" alt="Evidence" class="w-full h-auto max-h-64 object-contain bg-surface-variant/20">`}
                   </div>
                 ` : `
                   <div class="flex items-center justify-center h-32 bg-surface-variant/30 rounded-xl border border-dashed border-outline-variant/60 text-on-surface-variant">

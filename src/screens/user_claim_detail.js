@@ -72,7 +72,7 @@ export function renderUserClaimDetail(claimId) {
       const confidence = Math.round((claim.confidence_score || 0) * 100);
       const explanation = claim.ai_explanation || '';
       const rawUrl    = claim.evidence_url || claim.file_urls?.[0] || '';
-      const evidenceUrl = rawUrl ? await resolveEvidenceUrl(rawUrl) : null;
+      const evidenceData = rawUrl ? await resolveEvidenceUrl(rawUrl) : null;
 
       content.innerHTML = `
 
@@ -93,18 +93,20 @@ export function renderUserClaimDetail(claimId) {
           </span>
         </div>
 
-        <!-- Evidence image -->
+        <!-- Evidence attachment -->
         <div class="rounded-2xl border border-outline-variant/40 bg-surface-container-low/80 backdrop-blur-md overflow-hidden shadow-sm">
           <div class="flex items-center gap-3 border-b border-outline-variant/20 px-5 py-3.5 bg-surface-container-low/50">
-            <span class="material-symbols-outlined text-primary text-[20px]">photo_camera</span>
-            <span class="font-label-caps text-[11px] tracking-widest uppercase font-bold text-primary">Evidence Photo</span>
+            <span class="material-symbols-outlined text-primary text-[20px]">attachment</span>
+            <span class="font-label-caps text-[11px] tracking-widest uppercase font-bold text-primary">Evidence Attachment</span>
           </div>
           <div class="p-4">
-            ${evidenceUrl
-              ? `<img src="${escapeHtml(evidenceUrl)}" alt="Evidence" class="w-full rounded-xl object-contain max-h-72 bg-surface-variant/20">`
+            ${evidenceData
+              ? (evidenceData.type?.startsWith('video/')
+                  ? `<video src="${escapeHtml(evidenceData.url)}" controls class="w-full rounded-xl object-contain max-h-72 bg-black/10"></video>`
+                  : `<img src="${escapeHtml(evidenceData.url)}" alt="Evidence" class="w-full rounded-xl object-contain max-h-72 bg-surface-variant/20">`)
               : `<div class="flex flex-col items-center justify-center h-36 rounded-xl border border-dashed border-outline-variant/50 bg-surface-container text-on-surface-variant gap-2">
                   <span class="material-symbols-outlined text-[36px]">hide_image</span>
-                  <span class="text-body-sm">No evidence image available</span>
+                  <span class="text-body-sm">No evidence available</span>
                 </div>`
             }
           </div>

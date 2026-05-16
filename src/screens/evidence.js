@@ -15,7 +15,10 @@ function getFilePreviewName(file) {
 }
 
 function getFilePreviewUrl(file) {
-  return file.type.startsWith('image/') ? URL.createObjectURL(file) : '';
+  if (file.type.startsWith('image/') || file.type.startsWith('video/')) {
+    return URL.createObjectURL(file);
+  }
+  return '';
 }
 
 function parseRupiah(value) {
@@ -102,9 +105,13 @@ export function renderEvidence() {
       </div>
       <div id="selected-file-card" class="rounded-2xl border border-outline-variant/50 bg-surface-container-low p-4 ${draft.evidencePreviewName ? '' : 'hidden'}">
         <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <p class="font-label-caps text-label-caps text-primary uppercase tracking-wider">Selected Evidence</p>
-            <p id="selected-file-name" class="mt-2 break-words text-body-md text-on-surface">${draft.evidencePreviewName || ''}</p>
+            <div id="selected-file-preview-container" class="mt-3 mb-3 rounded-xl overflow-hidden bg-surface-variant/30 max-h-48 flex items-center justify-center ${draft.evidencePreviewUrl ? '' : 'hidden'}">
+              <img id="selected-file-preview-img" src="${draft.evidenceMimeType?.startsWith('image/') ? draft.evidencePreviewUrl : ''}" class="max-h-48 w-full object-contain ${draft.evidenceMimeType?.startsWith('image/') ? '' : 'hidden'}" />
+              <video id="selected-file-preview-video" src="${draft.evidenceMimeType?.startsWith('video/') ? draft.evidencePreviewUrl : ''}" class="max-h-48 w-full object-contain ${draft.evidenceMimeType?.startsWith('video/') ? '' : 'hidden'}" controls></video>
+            </div>
+            <p id="selected-file-name" class="break-words text-body-md text-on-surface">${draft.evidencePreviewName || ''}</p>
             <p id="selected-file-hint" class="mt-1 text-body-sm text-on-surface-variant ${draft.evidenceNeedsReselection ? '' : 'hidden'}">This file was restored from a previous draft. Re-attach it before submitting.</p>
           </div>
           <button id="remove-file-btn" type="button" class="shrink-0 rounded-full border border-outline-variant px-3 py-2 text-body-sm text-on-surface-variant hover:bg-surface">
@@ -246,11 +253,37 @@ export function renderEvidence() {
   let finalTranscript = '';
 
   const refreshFileUi = () => {
-    const { evidencePreviewName, evidenceNeedsReselection } = state.draftClaim;
+    const { evidencePreviewName, evidenceNeedsReselection, evidencePreviewUrl, evidenceMimeType } = state.draftClaim;
     selectedFileCard.classList.toggle('hidden', !evidencePreviewName);
     selectedFileName.textContent = evidencePreviewName || '';
     selectedFileHint.classList.toggle('hidden', !evidenceNeedsReselection);
     browseButton.textContent = evidencePreviewName && !evidenceNeedsReselection ? 'Replace File' : 'Browse Files';
+
+    const previewContainer = container.querySelector('#selected-file-preview-container');
+    const previewImg = container.querySelector('#selected-file-preview-img');
+    const previewVideo = container.querySelector('#selected-file-preview-video');
+
+    if (previewContainer) {
+      previewContainer.classList.toggle('hidden', !evidencePreviewUrl);
+      if (evidencePreviewUrl) {
+        const isImage = evidenceMimeType?.startsWith('image/');
+        const isVideo = evidenceMimeType?.startsWith('video/');
+        
+        previewImg.classList.toggle('hidden', !isImage);
+        previewVideo.classList.toggle('hidden', !isVideo);
+        
+        if (isImage) {
+          previewImg.src = evidencePreviewUrl;
+          previewVideo.src = '';
+        } else if (isVideo) {
+          previewVideo.src = evidencePreviewUrl;
+          previewImg.src = '';
+        }
+      } else {
+        previewImg.src = '';
+        previewVideo.src = '';
+      }
+    }
   };
 
   const revokeDraftPreviewUrl = () => {
