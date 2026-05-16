@@ -107,13 +107,16 @@ export function renderHub() {
   fetchClaims(state.currentUserId)
     .then((claims) => {
       const sortedClaims = sortClaimsByUpdatedAt(claims);
-
-      const totalRequested = sortedClaims.reduce((sum, claim) => (
-        sum + getClaimAmount(claim)
-      ), 0);
       const approvedClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'approved');
       const reviewClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'review');
       const rejectedClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'rejected');
+      const activeRefundClaims = sortedClaims.filter((claim) => {
+        const normalizedStatus = normalizeClaimStatus(claim.status);
+        return normalizedStatus === 'approved' || normalizedStatus === 'review';
+      });
+      const totalRequested = activeRefundClaims.reduce((sum, claim) => (
+        sum + getClaimAmount(claim)
+      ), 0);
       const approvedRefundTotal = approvedClaims.reduce((sum, claim) => sum + getClaimAmount(claim), 0);
 
       totalValue.textContent = formatCurrency(totalRequested);

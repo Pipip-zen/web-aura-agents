@@ -72,7 +72,11 @@ export function renderUserClaims() {
     .then((claims) => {
       const sortedClaims = sortClaimsByUpdatedAt(claims);
       const approvedClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'approved');
-      const requestedTotal = sortedClaims.reduce((sum, claim) => sum + getClaimAmount(claim), 0);
+      const activeRefundClaims = sortedClaims.filter((claim) => {
+        const normalizedStatus = normalizeClaimStatus(claim.status);
+        return normalizedStatus === 'approved' || normalizedStatus === 'review';
+      });
+      const requestedTotal = activeRefundClaims.reduce((sum, claim) => sum + getClaimAmount(claim), 0);
       const approvedTotal = approvedClaims.reduce((sum, claim) => sum + getClaimAmount(claim), 0);
 
       totalCount.textContent = `${sortedClaims.length}`;
