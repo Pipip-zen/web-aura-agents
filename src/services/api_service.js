@@ -179,8 +179,20 @@ export async function getClaim(claimId) {
 }
 
 export async function fetchClaims(userId) {
-  const response = await request(`/claims?user_id=${encodeURIComponent(userId)}`);
-  return Array.isArray(response.data) ? response.data : [];
+  try {
+    const path = userId
+      ? `/claims?user_id=${encodeURIComponent(userId)}`
+      : '/claims';
+    const response = await request(path);
+    return Array.isArray(response.data) ? response.data : [];
+  } catch (error) {
+    if (!userId) {
+      throw error;
+    }
+
+    const fallbackResponse = await request('/claims');
+    return Array.isArray(fallbackResponse.data) ? fallbackResponse.data : [];
+  }
 }
 
 export async function fetchSellerClaims() {
