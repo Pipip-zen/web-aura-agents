@@ -7,8 +7,30 @@ function formatClaimType(value) {
   return value ? value.replaceAll('_', ' ') : 'Unknown claim';
 }
 
+function getClaimAmount(claim) {
+  return Number(claim.refund_value || claim.refund_amount || 0);
+}
+
+function normalizeClaimStatus(status) {
+  if (['approved', 'refund_approved'].includes(status)) {
+    return 'approved';
+  }
+
+  if (['review', 'under_review', 'complete'].includes(status)) {
+    return 'review';
+  }
+
+  if (status === 'rejected') {
+    return 'rejected';
+  }
+
+  return 'processing';
+}
+
 function getStatusMeta(status) {
-  if (status === 'approved') {
+  const normalizedStatus = normalizeClaimStatus(status);
+
+  if (normalizedStatus === 'approved') {
     return {
       border: 'border-l-secondary',
       iconBg: 'bg-secondary-container/20',
@@ -19,7 +41,7 @@ function getStatusMeta(status) {
     };
   }
 
-  if (status === 'rejected') {
+  if (normalizedStatus === 'rejected') {
     return {
       border: 'border-l-error',
       iconBg: 'bg-error-container/20',
@@ -30,7 +52,7 @@ function getStatusMeta(status) {
     };
   }
 
-  if (status === 'review') {
+  if (normalizedStatus === 'review') {
     return {
       border: 'border-l-amber-500',
       iconBg: 'bg-amber-100',
@@ -52,8 +74,8 @@ function getStatusMeta(status) {
 }
 
 function renderClaimCard(claim) {
-  const amount = Number(claim.refund_value || claim.refund_amount || 0);
-  const status = claim.status || 'processing';
+  const amount = getClaimAmount(claim);
+  const status = normalizeClaimStatus(claim.status);
   const meta = getStatusMeta(status);
   const stepLabel = claim.current_step ? claim.current_step.replaceAll('_', ' ') : meta.label;
 
@@ -96,6 +118,7 @@ export function renderHub() {
           <div>
             <p class="font-title-sm text-on-surface-variant mb-xs">Total Refund Requested</p>
             <h3 id="hub-total-value" class="text-[clamp(2.25rem,10vw,3rem)] font-bold tracking-tight text-on-surface">Loading...</h3>
+            <p id="hub-approved-total" class="mt-2 text-body-md text-on-surface-variant">Approved refund: Rp0</p>
           </div>
           <div id="hub-total-caption" class="flex items-center gap-xs px-sm py-xs bg-primary/10 rounded-full text-primary">
             <span class="material-symbols-outlined text-[18px]">query_stats</span>
@@ -104,16 +127,16 @@ export function renderHub() {
         </div>
         <div class="mt-lg grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div class="rounded-xl bg-surface-container-low p-4">
-            <p class="text-label-caps uppercase text-outline">Processing</p>
-            <p id="hub-metric-processing" class="mt-2 text-headline-md text-on-surface">0</p>
-          </div>
-          <div class="rounded-xl bg-surface-container-low p-4">
             <p class="text-label-caps uppercase text-outline">Approved</p>
             <p id="hub-metric-approved" class="mt-2 text-headline-md text-secondary">0</p>
           </div>
           <div class="rounded-xl bg-surface-container-low p-4">
-            <p class="text-label-caps uppercase text-outline">Review / Rejected</p>
-            <p id="hub-metric-risk" class="mt-2 text-headline-md text-amber-600">0</p>
+            <p class="text-label-caps uppercase text-outline">Review</p>
+            <p id="hub-metric-review" class="mt-2 text-headline-md text-amber-600">0</p>
+          </div>
+          <div class="rounded-xl bg-surface-container-low p-4">
+            <p class="text-label-caps uppercase text-outline">Rejected</p>
+            <p id="hub-metric-rejected" class="mt-2 text-headline-md text-error">0</p>
           </div>
         </div>
       </div>
@@ -163,10 +186,11 @@ export function renderHub() {
   const secondaryCreateButton = container.querySelector('#hub-cta-create-secondary');
   const claimsList = container.querySelector('#hub-claims-list');
   const totalValue = container.querySelector('#hub-total-value');
+  const approvedTotal = container.querySelector('#hub-approved-total');
   const totalCaption = container.querySelector('#hub-total-caption');
-  const processingMetric = container.querySelector('#hub-metric-processing');
   const approvedMetric = container.querySelector('#hub-metric-approved');
-  const riskMetric = container.querySelector('#hub-metric-risk');
+  const reviewMetric = container.querySelector('#hub-metric-review');
+  const rejectedMetric = container.querySelector('#hub-metric-rejected');
 
   const goToCreate = () => navigate('evidence');
   btn?.addEventListener('click', goToCreate);
@@ -181,20 +205,22 @@ export function renderHub() {
       });
 
       const totalRequested = sortedClaims.reduce((sum, claim) => (
-        sum + Number(claim.refund_value || claim.refund_amount || 0)
+        sum + getClaimAmount(claim)
       ), 0);
-      const processingCount = sortedClaims.filter((claim) => ['pending', 'processing'].includes(claim.status)).length;
-      const approvedCount = sortedClaims.filter((claim) => claim.status === 'approved').length;
-      const riskCount = sortedClaims.filter((claim) => ['review', 'rejected'].includes(claim.status)).length;
+      const approvedClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'approved');
+      const reviewClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'review');
+      const rejectedClaims = sortedClaims.filter((claim) => normalizeClaimStatus(claim.status) === 'rejected');
+      const approvedRefundTotal = approvedClaims.reduce((sum, claim) => sum + getClaimAmount(claim), 0);
 
       totalValue.textContent = `Rp${currency.format(totalRequested)}`;
+      approvedTotal.textContent = `Approved refund: Rp${currency.format(approvedRefundTotal)}`;
       totalCaption.innerHTML = `
         <span class="material-symbols-outlined text-[18px]">dataset</span>
         <span class="font-label-caps">${sortedClaims.length} live claims</span>
       `;
-      processingMetric.textContent = `${processingCount}`;
-      approvedMetric.textContent = `${approvedCount}`;
-      riskMetric.textContent = `${riskCount}`;
+      approvedMetric.textContent = `${approvedClaims.length}`;
+      reviewMetric.textContent = `${reviewClaims.length}`;
+      rejectedMetric.textContent = `${rejectedClaims.length}`;
 
       if (!sortedClaims.length) {
         claimsList.innerHTML = `
