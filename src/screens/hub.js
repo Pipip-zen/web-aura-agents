@@ -119,7 +119,7 @@ export function renderHub() {
       approvedTotal.textContent = `Approved Refund: ${formatCurrency(approvedRefundTotal)}`;
       totalCaption.innerHTML = `
         <span class="material-symbols-outlined text-[18px]">dataset</span>
-        <span class="font-label-caps">${sortedClaims.length} live claims</span>
+        <span class="font-label-caps">${sortedClaims.length} claims in history</span>
       `;
       approvedMetric.textContent = `${approvedClaims.length}`;
       reviewMetric.textContent = `${reviewClaims.length}`;

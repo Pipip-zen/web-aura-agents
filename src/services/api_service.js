@@ -128,6 +128,13 @@ export async function completeRegistration(role) {
   return response?.data;
 }
 
+export async function getUserProfile() {
+  const response = await request('/users/me', {
+    method: 'GET'
+  });
+  return response?.data;
+}
+
 export async function uploadEvidence(file) {
   const formData = new FormData();
   formData.append("file", file);

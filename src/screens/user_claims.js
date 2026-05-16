@@ -92,7 +92,18 @@ export function renderUserClaims() {
         return;
       }
 
-      claimsList.innerHTML = sortedClaims.map((claim) => renderClaimCard(claim, { showDate: true })).join('');
+      claimsList.innerHTML = sortedClaims.map((claim) => `
+        <div class="cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:shadow-md rounded-xl" data-claim-id="${claim.id}">
+          ${renderClaimCard(claim, { showDate: true })}
+        </div>
+      `).join('');
+
+      claimsList.querySelectorAll('[data-claim-id]').forEach(el => {
+        el.addEventListener('click', () => {
+          state.selectedClaimId = el.getAttribute('data-claim-id');
+          navigate('user_claim_detail');
+        });
+      });
     })
     .catch((error) => {
       console.warn('Failed to load claim history', error);

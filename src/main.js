@@ -9,7 +9,8 @@ import { renderOnboarding } from './screens/onboarding.js';
 import { renderSellerDashboard } from './screens/seller_dashboard.js';
 import { renderSellerClaimDetail } from './screens/seller_claim_detail.js';
 import { renderUserClaims } from './screens/user_claims.js';
-import { fetchClaims } from './services/api_service.js';
+import { renderUserClaimDetail } from './screens/user_claim_detail.js';
+import { fetchClaims, getUserProfile } from './services/api_service.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   getUnreadClaimCount,
@@ -32,6 +33,7 @@ export const state = {
   authError: null,
   currentClaim: null,
   currentClaimStatus: null,
+  selectedClaimId: null,
   draftClaim: loadDraftClaim()
 };
 
@@ -45,7 +47,8 @@ export const routes = {
   'analysis': { label: 'Analysis', icon: 'auto_awesome', render: renderAiAnalysis, showNav: false },
   'decision': { label: 'Result', icon: 'verified', render: renderDecision, showNav: false },
   'onboarding': { label: 'Onboarding', icon: 'person_add', render: renderOnboarding, showNav: false },
-  'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false }
+  'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false },
+  'user_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderUserClaimDetail, showNav: false }
 };
 
 async function refreshNotificationIndicator() {
@@ -105,7 +108,7 @@ function initApp() {
   setupConnectivityState();
   setupDragScroll();
   renderAuthLoading();
-  subscribeToAuthState((user, error) => {
+  subscribeToAuthState(async (user, error) => {
     state.authReady = true;
     state.authError = error;
     state.currentUser = user;
@@ -116,24 +119,37 @@ function initApp() {
       state.currentClaim = null;
       state.currentClaimStatus = null;
       state.currentUsername = '';
+      setupNavigation();
+      updateAccountUi();
+      refreshNotificationIndicator();
+      updateConnectivityBanner();
+      navigate('auth');
+      return;
+    }
+
+    let targetRoute = state.currentRoute;
+    if (sessionStorage.getItem('is_new_user') === 'true') {
+      targetRoute = 'onboarding';
+    } else {
+      try {
+        const profile = await getUserProfile();
+        if (profile && profile.role) {
+          localStorage.setItem('aura_user_role', profile.role);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch user profile role', e);
+      }
+      
+      const role = localStorage.getItem('aura_user_role') || 'buyer';
+      if (targetRoute === 'auth' || targetRoute === 'hub') {
+        targetRoute = role === 'seller' ? 'seller_dashboard' : 'hub';
+      }
     }
 
     setupNavigation();
     updateAccountUi();
     refreshNotificationIndicator();
     updateConnectivityBanner();
-
-    let targetRoute = user ? state.currentRoute : 'auth';
-    if (user) {
-      if (sessionStorage.getItem('is_new_user') === 'true') {
-        targetRoute = 'onboarding';
-      } else {
-        const role = localStorage.getItem('aura_user_role') || 'buyer';
-        if (targetRoute === 'hub' && role === 'seller') {
-          targetRoute = 'seller_dashboard';
-        }
-      }
-    }
     navigate(targetRoute);
   });
 }
