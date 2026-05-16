@@ -13,12 +13,60 @@ function resolveEvidenceUrl(detail) {
     || '';
 }
 
+function getSellerClaimUiState(detail) {
+  const sellerDecision = detail?.seller_decision?.decision || detail?.seller_decision;
+  const aiVerdict = detail?.ai_analysis?.verdict || detail?.ai_verdict || detail?.ai_decision;
+  const status = detail?.status;
+
+  if (sellerDecision === 'approved' || status === 'approved' || status === 'refund_approved' || aiVerdict === 'APPROVE' || aiVerdict === 'AUTO_APPROVE') {
+    return {
+      tone: 'bg-secondary/10 text-secondary',
+      text: 'Approved',
+      icon: 'check_circle',
+      reviewable: false
+    };
+  }
+
+  if (sellerDecision === 'rejected' || status === 'rejected' || aiVerdict === 'REJECT' || aiVerdict === 'AUTO_REJECT') {
+    return {
+      tone: 'bg-error/10 text-error',
+      text: 'Rejected',
+      icon: 'cancel',
+      reviewable: false
+    };
+  }
+
+  if (status === 'under_review' || status === 'review' || status === 'complete' || aiVerdict === 'NEEDS_REVIEW') {
+    return {
+      tone: 'bg-amber-100 text-amber-700',
+      text: 'Needs Review',
+      icon: 'pending_actions',
+      reviewable: true
+    };
+  }
+
+  if (status === 'processing') {
+    return {
+      tone: 'bg-tertiary/10 text-tertiary',
+      text: 'Analyzing AI',
+      icon: 'progress_activity',
+      reviewable: false
+    };
+  }
+
+  return {
+    tone: 'bg-primary/10 text-primary',
+    text: 'Pending',
+    icon: 'schedule',
+    reviewable: false
+  };
+}
+
 export function renderSellerClaimDetail(claimId) {
   const container = document.createElement('div');
   container.className = 'w-full min-h-[calc(100dvh-120px)] flex flex-col gap-6 p-4 md:p-8 max-w-4xl mx-auto';
 
   container.innerHTML = `
-    <!-- Header -->
     <div class="flex items-center gap-4">
       <button id="back-btn" class="flex h-10 w-10 items-center justify-center rounded-full bg-surface-variant/50 text-on-surface hover:bg-surface-variant transition-colors">
         <span class="material-symbols-outlined">arrow_back</span>
@@ -26,7 +74,6 @@ export function renderSellerClaimDetail(claimId) {
       <h2 class="font-display-md text-display-md text-on-surface">Claim Detail</h2>
     </div>
 
-    <!-- Content Area (Loading state initially) -->
     <div id="detail-content" class="flex flex-col gap-6">
       <div class="flex items-center justify-center py-20 text-on-surface-variant">
         <span class="material-symbols-outlined animate-spin mr-2">progress_activity</span> Loading detail...
@@ -34,41 +81,30 @@ export function renderSellerClaimDetail(claimId) {
     </div>
   `;
 
-  // Back button listener
   container.querySelector('#back-btn').addEventListener('click', () => {
     navigate('seller_dashboard');
   });
 
-  // Fetch and render
   setTimeout(async () => {
     const content = container.querySelector('#detail-content');
     try {
       const detail = await getSellerClaimDetail(claimId);
-      
-      const { status, created_at, customer_reason, ai_analysis, seller_decision } = detail;
+      const { created_at, customer_reason, ai_analysis, seller_decision } = detail;
       const evidenceUrl = resolveEvidenceUrl(detail);
-
-      let statusColor = 'bg-surface-variant text-on-surface-variant';
-      let statusText = status || 'unknown';
-      if (status === 'pending') { statusColor = 'bg-primary/10 text-primary'; statusText = 'Pending'; }
-      else if (status === 'processing') { statusColor = 'bg-tertiary/10 text-tertiary'; statusText = 'Analyzing AI'; }
-      else if (status === 'under_review') { statusColor = 'bg-[#FFD700]/20 text-[#B8860B]'; statusText = 'Needs Review'; }
-      else if (status === 'complete' || status === 'approved') { statusColor = 'bg-secondary/10 text-secondary'; statusText = status === 'approved' ? 'Approved' : 'Complete'; }
-      else if (status === 'rejected') { statusColor = 'bg-error/10 text-error'; statusText = 'Rejected'; }
-
+      const sellerState = getSellerClaimUiState(detail);
       const hasDecision = !!seller_decision;
-      // Any claim without a seller decision is open for review — regardless of status
-      const isReviewable = !hasDecision;
+      const isReviewable = !hasDecision && sellerState.reviewable;
 
       content.innerHTML = `
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          
-          <!-- Left Column: Customer Evidence & Reason -->
           <div class="flex flex-col gap-4">
             <div class="rounded-2xl border border-outline-variant/50 bg-white p-5 shadow-sm">
               <div class="flex justify-between items-center mb-4">
                 <h3 class="font-title-md text-on-surface">Customer Report</h3>
-                <span class="px-2.5 py-1 rounded-full text-label-sm font-medium ${statusColor}">${statusText}</span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-label-sm font-medium ${sellerState.tone}">
+                  <span class="material-symbols-outlined text-[16px]" style="font-variation-settings: 'FILL' 1;">${sellerState.icon}</span>
+                  ${sellerState.text}
+                </span>
               </div>
               
               <div class="mb-4">
@@ -98,10 +134,7 @@ export function renderSellerClaimDetail(claimId) {
             </div>
           </div>
 
-          <!-- Right Column: AI Analysis & Decision -->
           <div class="flex flex-col gap-4">
-            
-            <!-- AI Analysis -->
             <div class="rounded-2xl border border-outline-variant/50 bg-white p-5 shadow-sm">
               <div class="flex items-center gap-2 mb-4 text-tertiary">
                 <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
@@ -112,7 +145,7 @@ export function renderSellerClaimDetail(claimId) {
                 <div class="flex items-center justify-between mb-4 pb-4 border-b border-outline-variant/30">
                   <div class="flex flex-col">
                     <span class="text-label-sm text-on-surface-variant">Recommendation</span>
-                    <span class="font-title-lg ${ai_analysis.verdict === 'APPROVE' ? 'text-secondary' : 'text-error'}">${ai_analysis.verdict}</span>
+                    <span class="font-title-lg ${ai_analysis.verdict === 'APPROVE' || ai_analysis.verdict === 'AUTO_APPROVE' ? 'text-secondary' : ai_analysis.verdict === 'NEEDS_REVIEW' ? 'text-amber-700' : 'text-error'}">${ai_analysis.verdict}</span>
                   </div>
                   <div class="flex flex-col items-end">
                     <span class="text-label-sm text-on-surface-variant">Confidence</span>
@@ -136,7 +169,6 @@ export function renderSellerClaimDetail(claimId) {
               `}
             </div>
 
-            <!-- Decision Box -->
             <div class="rounded-2xl border border-outline-variant/50 bg-white p-5 shadow-sm">
               <h3 class="font-title-md text-on-surface mb-4">Your Decision</h3>
               
@@ -164,7 +196,11 @@ export function renderSellerClaimDetail(claimId) {
                   </div>
                 ` : `
                   <div class="p-4 bg-surface-variant/30 rounded-xl text-center text-body-sm text-on-surface-variant">
-                    This claim is not currently open for review.
+                    ${sellerState.text === 'Approved'
+                      ? 'This claim was auto-approved by AI, so no seller review is needed.'
+                      : sellerState.text === 'Rejected'
+                        ? 'This claim was auto-rejected by AI, so no seller review is needed.'
+                        : 'This claim is not currently open for review.'}
                   </div>
                 `}
               `}
@@ -188,9 +224,7 @@ export function renderSellerClaimDetail(claimId) {
           
           try {
             await submitSellerDecision(claimId, decision, noteInput.value.trim());
-            // Re-render
-            renderSellerClaimDetail(claimId); 
-            // In a real app we might just navigate back, but re-rendering shows success
+            renderSellerClaimDetail(claimId);
             setTimeout(() => navigate('seller_dashboard'), 1500);
           } catch (e) {
             btn.innerHTML = originalText;
