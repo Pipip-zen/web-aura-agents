@@ -9,6 +9,7 @@ import { renderOnboarding } from './screens/onboarding.js';
 import { renderSellerDashboard } from './screens/seller_dashboard.js';
 import { renderSellerClaimDetail } from './screens/seller_claim_detail.js';
 import { renderUserClaims } from './screens/user_claims.js';
+import { fetchClaims } from './services/api_service.js';
 import { logout, subscribeToAuthState } from './services/auth_service.js';
 import {
   clearDraftClaimPersistence,
@@ -43,9 +44,63 @@ export const routes = {
   'seller_claim_detail': { label: 'Claim Detail', icon: 'receipt_long', render: renderSellerClaimDetail, showNav: false }
 };
 
+const NOTIFICATION_SEEN_STORAGE_KEY = 'aura-notifications-seen-v1';
+
+function getNotificationSeenKey(userId) {
+  return `${NOTIFICATION_SEEN_STORAGE_KEY}:${userId}`;
+}
+
+function getNotificationSeenAt(userId) {
+  if (!userId) return '';
+  return localStorage.getItem(getNotificationSeenKey(userId)) || '';
+}
+
+function markNotificationsSeen(userId) {
+  if (!userId) return;
+  localStorage.setItem(getNotificationSeenKey(userId), new Date().toISOString());
+}
+
+async function refreshNotificationIndicator() {
+  const notificationsButton = document.getElementById('notifications-button');
+  const notificationsBadge = document.getElementById('notifications-badge');
+  if (!notificationsButton || !notificationsBadge) return;
+
+  if (!state.currentUser || !state.currentUserId) {
+    notificationsBadge.classList.add('hidden');
+    notificationsButton.classList.remove('border-rose-200', 'bg-rose-50', 'text-rose-600');
+    notificationsButton.classList.add('border-outline-variant/50', 'bg-surface', 'text-on-surface');
+    return;
+  }
+
+  try {
+    const claims = await fetchClaims(state.currentUserId);
+    const seenAt = getNotificationSeenAt(state.currentUserId);
+    const seenTimestamp = seenAt ? new Date(seenAt).getTime() : 0;
+    const unreadCount = claims.filter((claim) => {
+      const updatedTimestamp = new Date(claim.updated_at || claim.created_at || 0).getTime();
+      return updatedTimestamp > seenTimestamp;
+    }).length;
+
+    if (unreadCount > 0) {
+      notificationsBadge.textContent = unreadCount > 99 ? '99+' : `${unreadCount}`;
+      notificationsBadge.classList.remove('hidden');
+      notificationsButton.classList.remove('border-outline-variant/50', 'bg-surface', 'text-on-surface');
+      notificationsButton.classList.add('border-rose-200', 'bg-rose-50', 'text-rose-600');
+    } else {
+      notificationsBadge.classList.add('hidden');
+      notificationsButton.classList.remove('border-rose-200', 'bg-rose-50', 'text-rose-600');
+      notificationsButton.classList.add('border-outline-variant/50', 'bg-surface', 'text-on-surface');
+    }
+  } catch {
+    notificationsBadge.classList.add('hidden');
+    notificationsButton.classList.remove('border-rose-200', 'bg-rose-50', 'text-rose-600');
+    notificationsButton.classList.add('border-outline-variant/50', 'bg-surface', 'text-on-surface');
+  }
+}
+
 function initApp() {
   setupNavigation();
-  setupAccountMenu();
+  setupTopBarActions();
   setupDragScroll();
   registerServiceWorker();
   renderAuthLoading();
@@ -64,6 +119,7 @@ function initApp() {
 
     setupNavigation();
     updateAccountUi();
+    refreshNotificationIndicator();
 
     let targetRoute = user ? state.currentRoute : 'auth';
     if (user) {
@@ -122,42 +178,54 @@ export function setupNavigation() {
   });
 }
 
-function setupAccountMenu() {
-  const accountButton = document.getElementById('account-button');
-  const accountMenu = document.getElementById('account-menu');
+function setupTopBarActions() {
+  const notificationsButton = document.getElementById('notifications-button');
   const logoutButton = document.getElementById('account-logout-btn');
-  if (!accountButton || !accountMenu || !logoutButton) return;
+  const logoutModal = document.getElementById('logout-modal');
+  const logoutCancelButton = document.getElementById('logout-cancel-btn');
+  const logoutConfirmButton = document.getElementById('logout-confirm-btn');
+  if (!notificationsButton || !logoutButton || !logoutModal || !logoutCancelButton || !logoutConfirmButton) return;
 
-  const closeMenu = () => {
-    accountMenu.classList.add('hidden');
-    accountButton.setAttribute('aria-expanded', 'false');
+  const closeLogoutModal = () => {
+    logoutModal.classList.add('hidden');
   };
 
-  const toggleMenu = () => {
+  const openLogoutModal = () => {
+    logoutModal.classList.remove('hidden');
+  };
+
+  notificationsButton.addEventListener('click', () => {
     if (!state.currentUser) return;
-    accountMenu.classList.toggle('hidden');
-    accountButton.setAttribute('aria-expanded', String(!accountMenu.classList.contains('hidden')));
-  };
-
-  accountButton.addEventListener('click', (event) => {
-    event.stopPropagation();
-    toggleMenu();
+    markNotificationsSeen(state.currentUserId);
+    refreshNotificationIndicator();
+    navigate('notifications');
   });
 
-  accountMenu.addEventListener('click', (event) => {
-    event.stopPropagation();
+  logoutButton.addEventListener('click', () => {
+    if (!state.currentUser) return;
+    openLogoutModal();
   });
 
-  document.addEventListener('click', closeMenu);
+  logoutCancelButton.addEventListener('click', closeLogoutModal);
+
+  logoutModal.addEventListener('click', (event) => {
+    if (event.target === logoutModal) {
+      closeLogoutModal();
+    }
+  });
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') closeMenu();
+    if (event.key === 'Escape') {
+      closeLogoutModal();
+    }
   });
 
-  logoutButton.addEventListener('click', async () => {
+  logoutConfirmButton.addEventListener('click', async () => {
     if (!state.currentUser) return;
 
-    logoutButton.disabled = true;
-    logoutButton.textContent = 'Signing out...';
+    logoutConfirmButton.disabled = true;
+    logoutCancelButton.disabled = true;
+    logoutConfirmButton.textContent = 'Signing out...';
 
     try {
       await logout();
@@ -167,11 +235,12 @@ function setupAccountMenu() {
       localStorage.removeItem('aura_user_id');
       sessionStorage.removeItem('is_new_user');
     } catch (error) {
-      logoutButton.textContent = error.message || 'Logout failed';
+      logoutConfirmButton.textContent = error.message || 'Logout failed';
     } finally {
-      logoutButton.disabled = false;
-      logoutButton.innerHTML = '<span class="material-symbols-outlined text-[18px]">logout</span> Logout';
-      closeMenu();
+      logoutConfirmButton.disabled = false;
+      logoutCancelButton.disabled = false;
+      logoutConfirmButton.textContent = 'Logout';
+      closeLogoutModal();
       updateAccountUi();
     }
   });
@@ -249,29 +318,25 @@ function renderAuthLoading() {
 }
 
 function updateAccountUi() {
-  const accountButton = document.getElementById('account-button');
-  const accountLabel = document.getElementById('account-label');
   const accountAvatar = document.getElementById('account-avatar');
-  const accountMenu = document.getElementById('account-menu');
-  const accountMenuName = document.getElementById('account-menu-name');
-  const accountMenuEmail = document.getElementById('account-menu-email');
-  if (!accountButton || !accountLabel || !accountAvatar || !accountMenu || !accountMenuName || !accountMenuEmail) return;
+  const notificationsButton = document.getElementById('notifications-button');
+  const notificationsBadge = document.getElementById('notifications-badge');
+  const logoutButton = document.getElementById('account-logout-btn');
+  if (!accountAvatar || !notificationsButton || !notificationsBadge || !logoutButton) return;
 
   const user = state.currentUser;
-  accountButton.classList.toggle('cursor-pointer', Boolean(user));
-  accountButton.disabled = !user;
-  accountButton.title = user ? 'Account menu' : 'Login required';
-  accountLabel.textContent = user ? (state.currentUsername || user.email) : 'Guest';
-  accountMenuName.textContent = user ? (state.currentUsername || user.email) : 'Guest';
-  accountMenuEmail.textContent = user?.email || 'Guest';
-
-  if (!user) {
-    accountMenu.classList.add('hidden');
-    accountButton.setAttribute('aria-expanded', 'false');
-  }
+  notificationsButton.disabled = !user;
+  logoutButton.disabled = !user;
+  notificationsButton.title = user ? 'Open notifications' : 'Login required';
+  logoutButton.title = user ? 'Logout' : 'Login required';
+  logoutButton.classList.toggle('hidden', !user);
+  notificationsBadge.classList.toggle('hidden', !user);
 
   const initial = (user?.email || 'A').trim().charAt(0).toUpperCase();
-  accountAvatar.textContent = initial;
+  accountAvatar.innerHTML = `
+    <span class="material-symbols-outlined text-[30px]" style="font-variation-settings: 'FILL' 1;">person</span>
+  `;
+  accountAvatar.setAttribute('aria-label', user ? `${initial} profile` : 'Guest profile');
 }
 
 export function updateDraftClaim(patch) {
@@ -326,6 +391,10 @@ export function navigate(route, params = null) {
   }
 
   if (!routes[route]) return;
+
+  if (route === 'notifications' && state.currentUserId) {
+    markNotificationsSeen(state.currentUserId);
+  }
   
   state.currentRoute = route;
   
@@ -366,6 +435,8 @@ export function navigate(route, params = null) {
   // Render new content
   const screenContent = routes[route].render(params);
   appContent.appendChild(screenContent);
+
+  refreshNotificationIndicator();
 }
 
 // Start app
