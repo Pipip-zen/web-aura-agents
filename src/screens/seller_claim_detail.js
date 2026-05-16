@@ -1,17 +1,6 @@
-import { getSellerClaimDetail, submitSellerDecision } from '../services/api_service.js';
+import { getSellerClaimDetail, submitSellerDecision, resolveEvidenceUrl } from '../services/api_service.js';
 import { navigate } from '../main.js';
 
-function resolveEvidenceUrl(detail) {
-  return detail?.evidence_url
-    || detail?.evidenceUrl
-    || detail?.file_url
-    || detail?.fileUrl
-    || detail?.evidence_file_url
-    || detail?.attachment_url
-    || detail?.file_urls?.[0]
-    || detail?.evidence_urls?.[0]
-    || '';
-}
 
 function getSellerClaimUiState(detail) {
   const sellerDecision = detail?.seller_decision?.decision || detail?.seller_decision;
@@ -90,7 +79,9 @@ export function renderSellerClaimDetail(claimId) {
     try {
       const detail = await getSellerClaimDetail(claimId);
       const { created_at, customer_reason, ai_analysis, seller_decision } = detail;
-      const evidenceUrl = resolveEvidenceUrl(detail);
+      // Resolve through authenticated backend proxy -> blob URL for <img src>
+      const rawEvidenceUrl = detail?.evidence_url || detail?.file_urls?.[0] || '';
+      const evidenceUrl = await resolveEvidenceUrl(rawEvidenceUrl);
       const sellerState = getSellerClaimUiState(detail);
       const hasDecision = !!seller_decision;
       const isReviewable = !hasDecision && sellerState.reviewable;
@@ -123,7 +114,7 @@ export function renderSellerClaimDetail(claimId) {
                 <p class="text-label-sm text-on-surface-variant mb-2">Evidence Attachment</p>
                 ${evidenceUrl ? `
                   <div class="overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-variant/20">
-                    <img src="${evidenceUrl}" alt="Evidence" class="w-full h-auto max-h-64 object-cover">
+                    <img src="${evidenceUrl}" alt="Evidence" class="w-full h-auto max-h-64 object-contain bg-surface-variant/20">
                   </div>
                 ` : `
                   <div class="flex items-center justify-center h-32 bg-surface-variant/30 rounded-xl border border-dashed border-outline-variant/60 text-on-surface-variant">

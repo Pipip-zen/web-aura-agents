@@ -1,4 +1,5 @@
 import { navigate, resetDraftClaim, setCurrentClaim, setCurrentClaimStatus, state } from '../main.js';
+import { getClaim, resolveEvidenceUrl } from '../services/api_service.js';
 
 const decisionLabels = {
   AUTO_APPROVE: 'AUTO APPROVED',
@@ -38,9 +39,14 @@ export function renderDecision() {
   if (evidenceSummary.length > 30 && evidenceSummary.includes('-')) {
     evidenceSummary = `File: ${evidenceSummary.split('-')[0]}...`;
   }
+  // Use evidence_url from the backend (persisted) first, then fall back to the
+  // in-session blob URL (only valid in the same browser session after upload).
   const evidencePreviewUrl = claim?.evidence_url || state.draftClaim?.evidencePreviewUrl || '';
-  const hasEvidenceImage = Boolean(evidencePreviewUrl);
+  // Always render the placeholder slot — the async resolveEvidenceUrl() will swap it
+  // with a blob URL after fetching through the authenticated backend proxy.
+  const hasEvidenceImage = false;
   const updatedAtLabel = claim?.updated_at ? new Date(claim.updated_at).toLocaleString('id-ID') : 'Live backend response';
+
   const statusFormatted = status.charAt(0).toUpperCase() + status.slice(1);
   const decisionTone = decision === 'AUTO_APPROVE'
     ? 'text-[#00C853] border-[#00C853]/40 bg-[#00C853]/10 shadow-[0_0_12px_rgba(0,200,83,0.2)]'
@@ -146,9 +152,9 @@ export function renderDecision() {
             <p class="text-[10px] font-bold text-outline uppercase tracking-[0.2em] mb-2 flex items-center gap-1.5"><span class="material-symbols-outlined text-[14px]">attach_file</span> Evidence</p>
             <div class="flex items-center gap-3 rounded-xl border border-outline-variant/20 bg-surface-container-high/50 p-2.5">
               ${hasEvidenceImage ? `
-                <img src="${escapeHtml(evidencePreviewUrl)}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-cover">
+                <img src="${escapeHtml(evidencePreviewUrl)}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">
               ` : `
-                <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-outline-variant/40 bg-surface-container text-on-surface-variant">
+                <div id="evidence-slot" class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-dashed border-outline-variant/40 bg-surface-container text-on-surface-variant">
                   <span class="material-symbols-outlined text-[18px]">attach_file</span>
                 </div>
               `}
@@ -251,6 +257,33 @@ export function renderDecision() {
       badge.classList.remove('opacity-0', 'translate-y-4');
     }
   }, 1200);
+
+  // Resolve evidence URL asynchronously and inject into the DOM
+  // (img tags can't send Authorization headers, so we fetch + blob it)
+  const rawUrl = claim?.evidence_url || state.draftClaim?.evidencePreviewUrl || '';
+  if (rawUrl) {
+    resolveEvidenceUrl(rawUrl).then(blobUrl => {
+      if (!blobUrl) return;
+      const slot = container.querySelector('#evidence-slot');
+      if (slot) {
+        slot.outerHTML = `<img src="${blobUrl}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+      }
+      setCurrentClaim({ ...claim, evidence_url: rawUrl });
+    }).catch(() => {});
+  } else if (claim?.id) {
+    // No URL in state at all — fetch full claim from API
+    getClaim(claim.id).then(async freshClaim => {
+      const url = freshClaim?.evidence_url;
+      if (!url) return;
+      const blobUrl = await resolveEvidenceUrl(url);
+      if (!blobUrl) return;
+      const slot = container.querySelector('#evidence-slot');
+      if (slot) {
+        slot.outerHTML = `<img src="${blobUrl}" alt="Evidence preview" class="h-12 w-12 shrink-0 rounded-lg border border-outline-variant/30 object-contain bg-surface-variant/20">`;
+      }
+      setCurrentClaim({ ...claim, evidence_url: url });
+    }).catch(() => {});
+  }
 
   const btn = container.querySelector('#finish-btn');
   if(btn) {

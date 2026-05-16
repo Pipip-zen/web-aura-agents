@@ -64,6 +64,46 @@ export function getApiBaseUrl() {
   return API_BASE_URL;
 }
 
+/**
+ * Converts a backend evidence_url (which may be a relative proxy path like
+ * /api/v1/upload/{id}/view) into a blob URL the browser can use as <img src>.
+ *
+ * Why: img tags can't send Authorization headers. The backend /view endpoint
+ * requires auth. So we fetch the bytes ourselves with the token, then hand
+ * the browser a local blob:// URL.
+ *
+ * @param {string} evidenceUrl - Relative or absolute URL from the backend
+ * @returns {Promise<string|null>} A blob:// URL, or null on failure
+ */
+export async function resolveEvidenceUrl(evidenceUrl) {
+  if (!evidenceUrl) return null;
+
+  // Already a blob or data URL — use directly
+  if (evidenceUrl.startsWith('blob:') || evidenceUrl.startsWith('data:')) {
+    return evidenceUrl;
+  }
+
+  // Build absolute URL: relative paths like /api/v1/upload/.../view need the backend origin
+  let absoluteUrl;
+  if (evidenceUrl.startsWith('http')) {
+    absoluteUrl = evidenceUrl;
+  } else {
+    // e.g. /api/v1/upload/{id}/view  →  http://localhost:8000/api/v1/upload/{id}/view
+    const backendOrigin = API_BASE_URL.replace(/\/api\/v1$/, '');
+    absoluteUrl = `${backendOrigin}${evidenceUrl}`;
+  }
+
+  try {
+    const headers = await buildHeaders();
+    const res = await fetch(absoluteUrl, { headers });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return URL.createObjectURL(blob);
+  } catch {
+    return null;
+  }
+}
+
 export async function registerUserProfile(profile) {
   const response = await request('/users/register', {
     method: 'POST',
